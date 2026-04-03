@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoAdsSports — Scores without the clutter</title>
+    <meta name="description" content="Fast, ad-free sports scores. No tracking, no cookies, no bloat.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#111827">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Home View -->
+    <div id="home-view" class="view">
+        <header class="home-header">
+            <h1>NoAdsSports</h1>
+            <p class="tagline">Scores without the clutter.</p>
+        </header>
+
+        <!-- Tab bar (hidden when fewer than 2 tabs) -->
+        <div id="tab-bar" class="tab-bar" hidden></div>
+
+        <!-- Dashboard container (shown when user has teams) -->
+        <div id="dashboard" class="dashboard" hidden>
+            <div id="team-cards" class="team-cards"></div>
+        </div>
+
+        <!-- Empty state (shown when no teams) -->
+        <div id="empty-state" class="empty-state">
+            <div id="headlines-box" class="headlines-box">
+                <h2>Headlines</h2>
+                <p class="text-muted">Sports headlines will appear here once an API is connected.</p>
+            </div>
+            <button id="add-team-btn" class="add-team-btn">+ Add a Team</button>
+            <div class="league-quick-picks">
+                <h3>Quick Browse</h3>
+                <div class="league-quick-buttons">
+                    <button class="league-btn" data-league-id="4391" data-source="tsdb" data-sport="American Football">NFL</button>
+                    <button class="league-btn" data-league-id="4387" data-source="tsdb" data-sport="Basketball">NBA</button>
+                    <button class="league-btn" data-league-id="4424" data-source="tsdb" data-sport="Baseball">MLB</button>
+                    <button class="league-btn" data-league-id="4380" data-source="tsdb" data-sport="Ice Hockey">NHL</button>
+                    <button class="league-btn" data-league-id="4346" data-source="tsdb" data-sport="Soccer">MLS</button>
+                    <button class="league-btn" data-league-id="4328" data-source="tsdb" data-sport="Soccer">EPL</button>
+                    <button class="league-btn" data-league-id="football" data-source="ncaa" data-sport="Football">NCAA FB</button>
+                    <button class="league-btn" data-league-id="basketball-men" data-source="ncaa" data-sport="Basketball">NCAA BB</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating add team FAB (shown when user has teams) -->
+        <button id="add-team-fab" class="add-team-fab" hidden aria-label="Add a team">+</button>
+
+        <button id="privacy-toggle-home" class="privacy-link privacy-link-fixed">Privacy / Cookies</button>
+    </div>
+
+    <!-- Add Team Modal -->
+    <div id="add-team-modal" class="modal-overlay" hidden>
+        <div class="modal-card" role="dialog" aria-label="Add a team">
+            <button id="modal-close" class="modal-close" aria-label="Close">&times;</button>
+            <h2 class="modal-title">Add a Team</h2>
+
+            <!-- Search -->
+            <div class="modal-search">
+                <input type="text" id="modal-search-input" placeholder="Search for a team..." autocomplete="off">
+                <div id="modal-search-results" class="search-results" hidden></div>
+            </div>
+
+            <!-- Browse by league -->
+            <div id="modal-browse" class="modal-browse">
+                <h3>Browse by League</h3>
+                <div id="browse-league-buttons" class="browse-league-buttons"></div>
+                <div id="browse-team-list" class="browse-team-list" hidden></div>
+            </div>
+
+            <!-- Team config (shown after selecting a team) -->
+            <div id="team-config" class="team-config" hidden>
+                <div id="team-config-header" class="team-config-header"></div>
+
+                <h3>Add to Tabs</h3>
+                <div id="tab-checkboxes" class="checkbox-group"></div>
+
+                <h3>Notifications</h3>
+                <div id="notification-checkboxes" class="checkbox-group"></div>
+
+                <button id="confirm-add-team" class="add-team-btn">Confirm &amp; Add Team</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy panel -->
+    <div id="privacy-panel" hidden>
+        <button id="privacy-close" aria-label="Close">&times;</button>
+        <p><strong>No cookies. No tracking. No ads.</strong></p>
+        <p>This site does not use cookies, does not track you, and does not collect any personal information. We don't use analytics, fingerprinting, or any form of user tracking.</p>
+        <p>When you search for a team or league, requests are sent to third-party sports data APIs to retrieve scores and schedules. No personal data is transmitted.</p>
+        <p>Your preferences (dark mode, layout, and notification settings) are saved in your browser's local storage (not a cookie) so they persist between visits. You can clear this anytime by clearing your browser data.</p>
+        <p>This site is open source and supported by tips from our visitors. No data is sold, shared, or monetized in any way. If you think this is awesome, please consider <a href="https://ko-fi.com/noadsdude" target="_blank" rel="noopener" style="color:var(--accent);">clicking here to support us</a>.</p>
+    </div>
+
+    <!-- Theme toggle + restore defaults -->
+    <button id="restore-defaults" aria-label="Restore default layout" title="Restore default layout">↺</button>
+    <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+
+    <!-- Floating donate button -->
+    <a id="donate-btn" href="https://ko-fi.com/noadsdude" target="_blank" rel="noopener">
+        Support this site
+    </a>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
