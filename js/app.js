@@ -816,51 +816,85 @@ modalSearchInput.addEventListener('input', () => {
     }
 
     modalSearchResults.hidden = false;
-    modalSearchResults.innerHTML = '<div class="search-loading">Searching...</div>';
 
-    searchDebounceTimer = setTimeout(() => searchTeams(query), 800);
+    // Instant local search from TEAM_LIST
+    const localResults = searchLocalTeams(query);
+    if (localResults.length > 0) {
+        renderSearchResults(localResults);
+    } else if (query.length < 4) {
+        modalSearchResults.innerHTML = '<div class="search-hint">Keep typing to search online...</div>';
+    } else {
+        // Fall back to API search
+        modalSearchResults.innerHTML = '<div class="search-loading">Searching online...</div>';
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => searchTeams(query), 800);
+    }
 });
 
+// Local search: filter TEAM_LIST by name or alternate names
+function searchLocalTeams(query) {
+    if (typeof TEAM_LIST === 'undefined' || !TEAM_LIST) return [];
+    const q = query.toLowerCase();
+    return TEAM_LIST.filter(t => {
+        const name = (t.n || '').toLowerCase();
+        const alt = (t.a || '').toLowerCase();
+        return name.includes(q) || alt.includes(q);
+    }).slice(0, 15).map(t => ({
+        id: t.id,
+        name: t.n,
+        league: t.l,
+        leagueId: t.li,
+        sport: t.s,
+        badge: t.b || '',
+        source: 'tsdb'
+    }));
+}
+
+// Render search results (used by both local and API search)
+function renderSearchResults(teams) {
+    if (teams.length === 0) {
+        modalSearchResults.innerHTML = '<div class="search-no-results">No teams found. Try a different search.</div>';
+        return;
+    }
+
+    modalSearchResults.innerHTML = teams.map(team => {
+        const teamData = JSON.stringify(team);
+        const badge = team.badge
+            ? `<img class="search-result-badge" src="${sanitizeAttr(team.badge)}" alt="" loading="lazy">`
+            : '<div class="search-result-badge"></div>';
+        return `
+            <div class="search-result-item" data-team='${sanitizeAttr(teamData)}'>
+                ${badge}
+                <div class="search-result-info">
+                    <div class="search-result-name">${sanitizeText(team.name)}</div>
+                    <div class="search-result-league">${sanitizeText(team.league || '')} &middot; ${sanitizeText(team.sport || '')}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    modalSearchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const teamData = JSON.parse(item.dataset.team);
+            showTeamConfig(teamData);
+        });
+    });
+}
+
+// API fallback search for teams not in local list
 async function searchTeams(query) {
     try {
         const data = await api.searchTeams(query);
-        const teams = data.teams || [];
-
-        if (teams.length === 0) {
-            modalSearchResults.innerHTML = '<div class="search-no-results">No teams found. Try a different search.</div>';
-            return;
-        }
-
-        modalSearchResults.innerHTML = teams.slice(0, 15).map(team => {
-            const teamData = JSON.stringify({
-                id: team.idTeam,
-                name: team.strTeam,
-                league: team.strLeague,
-                leagueId: team.idLeague,
-                sport: team.strSport,
-                badge: team.strBadge || '',
-                source: 'tsdb'
-            });
-            const badge = team.strBadge
-                ? `<img class="search-result-badge" src="${sanitizeAttr(team.strBadge)}" alt="" loading="lazy">`
-                : '<div class="search-result-badge"></div>';
-            return `
-                <div class="search-result-item" data-team='${sanitizeAttr(teamData)}'>
-                    ${badge}
-                    <div class="search-result-info">
-                        <div class="search-result-name">${sanitizeText(team.strTeam)}</div>
-                        <div class="search-result-league">${sanitizeText(team.strLeague || '')} &middot; ${sanitizeText(team.strSport || '')}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        modalSearchResults.querySelectorAll('.search-result-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const teamData = JSON.parse(item.dataset.team);
-                showTeamConfig(teamData);
-            });
-        });
+        const teams = (data.teams || []).slice(0, 15).map(team => ({
+            id: team.idTeam,
+            name: team.strTeam,
+            league: team.strLeague,
+            leagueId: team.idLeague,
+            sport: team.strSport,
+            badge: team.strBadge || '',
+            source: 'tsdb'
+        }));
+        renderSearchResults(teams);
     } catch (err) {
         modalSearchResults.innerHTML = '<div class="search-no-results">Search error. Please try again.</div>';
     }
