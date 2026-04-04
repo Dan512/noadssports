@@ -532,6 +532,18 @@ function sanitizeAttr(str) {
     return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// --- Team Badge Helper -------------------------------------------------------
+
+function getTeamBadge(team) {
+    // If badge URL already set, use it
+    if (team.badge) return team.badge;
+    // NCAA teams: generate logo URL from school slug
+    if (team.source === 'ncaa' && team.id) {
+        return `https://ncaa-api.henrygd.me/logo/${encodeURIComponent(team.id)}.svg`;
+    }
+    return '';
+}
+
 // --- Dashboard Rendering (Task 4) -------------------------------------------
 
 function renderDashboard() {
@@ -602,7 +614,8 @@ function renderTeamCards() {
 
     teamCardsContainer.innerHTML = visibleTeams.map(team => {
         const teamKey = `${team.source}:${team.id}`;
-        const badge = team.badge ? `<img class="team-card-badge" src="${sanitizeAttr(team.badge)}" alt="" loading="lazy">` : '<div class="team-card-badge"></div>';
+        const badgeUrl = getTeamBadge(team);
+        const badge = badgeUrl ? `<img class="team-card-badge" src="${sanitizeAttr(badgeUrl)}" alt="" loading="lazy">` : '<div class="team-card-badge"></div>';
         return `
             <div class="team-card" data-team-key="${sanitizeAttr(teamKey)}">
                 <button class="team-card-remove" title="Remove team" data-team-id="${sanitizeAttr(team.id)}" data-source="${sanitizeAttr(team.source)}">&times;</button>
@@ -839,15 +852,12 @@ function searchLocalTeams(query) {
         const name = (t.n || '').toLowerCase();
         const alt = (t.a || '').toLowerCase();
         return name.includes(q) || alt.includes(q);
-    }).slice(0, 15).map(t => ({
-        id: t.id,
-        name: t.n,
-        league: t.l,
-        leagueId: t.li,
-        sport: t.s,
-        badge: t.b || '',
-        source: 'tsdb'
-    }));
+    }).slice(0, 15).map(t => {
+        const source = t.li === 'football' || t.li === 'basketball-men' || t.li === 'basketball-women' ? 'ncaa' : 'tsdb';
+        const team = { id: t.id, name: t.n, league: t.l, leagueId: t.li, sport: t.s, badge: t.b || '', source };
+        team.badge = getTeamBadge(team);
+        return team;
+    });
 }
 
 // Render search results (used by both local and API search)
@@ -923,7 +933,38 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
     teamConfig.hidden = true;
 
     if (source === 'ncaa') {
-        browseTeamList.innerHTML = '<div class="browse-message">NCAA has too many teams to list. Use the search bar above to find your team.</div>';
+        // Use local TEAM_LIST for NCAA browse
+        if (typeof TEAM_LIST !== 'undefined') {
+            const leagueLabel = BROWSE_LEAGUES.find(lg => lg.id === leagueId)?.name || leagueId;
+            const ncaaTeams = TEAM_LIST.filter(t => t.li === leagueId)
+                .sort((a, b) => a.n.localeCompare(b.n));
+
+            if (ncaaTeams.length > 0) {
+                browseTeamList.innerHTML = ncaaTeams.map(t => {
+                    const teamData = JSON.stringify({
+                        id: t.id, name: t.n, league: leagueLabel,
+                        leagueId: t.li, sport: t.s, badge: t.b || '', source: 'ncaa'
+                    });
+                    const badge = t.b
+                        ? `<img class="browse-team-badge" src="${sanitizeAttr(t.b)}" alt="" loading="lazy">`
+                        : '<div class="browse-team-badge"></div>';
+                    return `
+                        <div class="browse-team-item" data-team='${sanitizeAttr(teamData)}'>
+                            ${badge}
+                            <span class="browse-team-name">${sanitizeText(t.n)}</span>
+                        </div>`;
+                }).join('');
+
+                browseTeamList.querySelectorAll('.browse-team-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const teamData = JSON.parse(item.dataset.team);
+                        showTeamConfig(teamData);
+                    });
+                });
+                return;
+            }
+        }
+        browseTeamList.innerHTML = '<div class="browse-message">Use the search bar above to find your team.</div>';
         return;
     }
 
