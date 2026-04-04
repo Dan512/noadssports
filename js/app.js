@@ -503,16 +503,16 @@ const modalBrowse = document.getElementById('modal-browse');
 // --- Browse Leagues Array ----------------------------------------------------
 
 const BROWSE_LEAGUES = [
-    { id: '4391', name: 'NFL', source: 'tsdb', sport: 'American Football' },
-    { id: '4387', name: 'NBA', source: 'tsdb', sport: 'Basketball' },
-    { id: '4424', name: 'MLB', source: 'tsdb', sport: 'Baseball' },
-    { id: '4380', name: 'NHL', source: 'tsdb', sport: 'Ice Hockey' },
-    { id: '4346', name: 'MLS', source: 'tsdb', sport: 'Soccer' },
-    { id: '4328', name: 'English Premier League', source: 'tsdb', sport: 'Soccer' },
-    { id: '4335', name: 'La Liga', source: 'tsdb', sport: 'Soccer' },
-    { id: '4332', name: 'Serie A', source: 'tsdb', sport: 'Soccer' },
-    { id: '4331', name: 'Bundesliga', source: 'tsdb', sport: 'Soccer' },
-    { id: '4480', name: 'Champions League', source: 'tsdb', sport: 'Soccer' },
+    { id: '4391', name: 'NFL', tsdbName: 'NFL', source: 'tsdb', sport: 'American Football' },
+    { id: '4387', name: 'NBA', tsdbName: 'NBA', source: 'tsdb', sport: 'Basketball' },
+    { id: '4424', name: 'MLB', tsdbName: 'MLB', source: 'tsdb', sport: 'Baseball' },
+    { id: '4380', name: 'NHL', tsdbName: 'NHL', source: 'tsdb', sport: 'Ice Hockey' },
+    { id: '4346', name: 'MLS', tsdbName: 'American Major League Soccer', source: 'tsdb', sport: 'Soccer' },
+    { id: '4328', name: 'English Premier League', tsdbName: 'English Premier League', source: 'tsdb', sport: 'Soccer' },
+    { id: '4335', name: 'La Liga', tsdbName: 'Spanish La Liga', source: 'tsdb', sport: 'Soccer' },
+    { id: '4332', name: 'Serie A', tsdbName: 'Italian Serie A', source: 'tsdb', sport: 'Soccer' },
+    { id: '4331', name: 'Bundesliga', tsdbName: 'German Bundesliga', source: 'tsdb', sport: 'Soccer' },
+    { id: '4480', name: 'Champions League', tsdbName: 'UEFA Champions League', source: 'tsdb', sport: 'Soccer' },
     { id: 'football', name: 'NCAA Football', source: 'ncaa', sport: 'Football' },
     { id: 'basketball-men', name: 'NCAA Basketball (M)', source: 'ncaa', sport: 'Basketball' },
     { id: 'basketball-women', name: 'NCAA Basketball (W)', source: 'ncaa', sport: 'Basketball' },
@@ -847,7 +847,7 @@ async function searchTeams(query) {
 
 function populateBrowseLeagues() {
     browseLeagueButtons.innerHTML = BROWSE_LEAGUES.map(league =>
-        `<button class="browse-league-btn" data-league-id="${sanitizeAttr(league.id)}" data-source="${sanitizeAttr(league.source)}" data-sport="${sanitizeAttr(league.sport)}">${sanitizeText(league.name)}</button>`
+        `<button class="browse-league-btn" data-league-id="${sanitizeAttr(league.id)}" data-source="${sanitizeAttr(league.source)}" data-sport="${sanitizeAttr(league.sport)}" data-tsdb-name="${sanitizeAttr(league.tsdbName || league.name)}">${sanitizeText(league.name)}</button>`
     ).join('');
 
     browseLeagueButtons.querySelectorAll('.browse-league-btn').forEach(btn => {
@@ -855,7 +855,7 @@ function populateBrowseLeagues() {
             // Toggle active state
             browseLeagueButtons.querySelectorAll('.browse-league-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            browseLeagueTeams(btn.dataset.leagueId, btn.dataset.source, btn.textContent, btn.dataset.sport);
+            browseLeagueTeams(btn.dataset.leagueId, btn.dataset.source, btn.dataset.tsdbName || btn.textContent, btn.dataset.sport);
         });
     });
 }
