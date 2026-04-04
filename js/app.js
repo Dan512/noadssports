@@ -167,8 +167,10 @@ const api = (() => {
         searchTeams(query) {
             return fetchJSON(buildUrl('/tsdb/search/teams', '/searchteams.php', { t: query }));
         },
-        getLeagueTeams(leagueId) {
-            return fetchJSON(buildUrl('/tsdb/league/teams', '/lookup_all_teams.php', { id: leagueId }));
+        getLeagueTeams(leagueId, leagueName) {
+            const params = { id: leagueId };
+            if (leagueName) params.l = leagueName;
+            return fetchJSON(buildUrl('/tsdb/league/teams', '/lookup_all_teams.php', params));
         },
         getTeamNextEvents(teamId) {
             return fetchJSON(buildUrl('/tsdb/team/next', '/eventsnext.php', { id: teamId }));
@@ -869,7 +871,7 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
     }
 
     try {
-        const data = await api.getLeagueTeams(leagueId);
+        const data = await api.getLeagueTeams(leagueId, leagueName);
         const teams = (data.teams || []).sort((a, b) => a.strTeam.localeCompare(b.strTeam));
 
         if (teams.length === 0) {
