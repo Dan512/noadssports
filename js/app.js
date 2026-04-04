@@ -569,6 +569,16 @@ function renderTabBar() {
             setActiveTab(btn.dataset.tabId);
             renderTabBar();
             renderTeamCards();
+            // Fetch data for the newly visible teams
+            const teams = loadFollowedTeams();
+            const tabs = loadTabs();
+            const activeTab = tabs.find(t => t.id === btn.dataset.tabId) || tabs[0];
+            let visibleTeams = teams;
+            if (activeTab && !activeTab.teams.includes('all')) {
+                const allowedKeys = new Set(activeTab.teams);
+                visibleTeams = teams.filter(t => allowedKeys.has(`${t.source}:${t.id}`));
+            }
+            fetchAllTeamData(visibleTeams);
         });
     });
 }
@@ -604,7 +614,7 @@ function renderTeamCards() {
                     </div>
                 </div>
                 <div class="team-card-data" id="card-data-${sanitizeAttr(teamKey)}">
-                    <p class="team-card-placeholder">API not connected yet</p>
+                    <p class="team-card-placeholder">Loading...</p>
                 </div>
             </div>
         `;
@@ -622,12 +632,24 @@ function renderTeamCards() {
     });
 }
 
-function fetchAllTeamData(teams) {
+// In-memory cache for team data (avoids re-fetching on tab switch)
+const teamDataCache = new Map(); // teamKey -> { data, timestamp }
+const TEAM_CACHE_TTL = 120000; // 2 minutes
+
+function fetchAllTeamData(teams, forceRefresh) {
     const tsdbTeams = teams.filter(t => t.source === 'tsdb');
     for (const team of tsdbTeams) {
         const teamKey = `${team.source}:${team.id}`;
         const cardData = document.getElementById(`card-data-${teamKey}`);
         if (!cardData) continue;
+
+        // Use cache if fresh enough
+        const cached = teamDataCache.get(teamKey);
+        if (!forceRefresh && cached && (Date.now() - cached.timestamp < TEAM_CACHE_TTL)) {
+            renderTeamCardData(cardData, team, cached.data);
+            continue;
+        }
+
         cardData.innerHTML = '<p class="team-card-loading">Loading...</p>';
 
         const currentSeason = guessCurrentSeason();
@@ -642,6 +664,7 @@ function fetchAllTeamData(teams) {
                 lastEvents: lastRes.status === 'fulfilled' ? (lastRes.value?.results || []) : [],
                 standings: standingsRes.status === 'fulfilled' && standingsRes.value ? (standingsRes.value?.table || []) : []
             };
+            teamDataCache.set(teamKey, { data, timestamp: Date.now() });
             renderTeamCardData(cardData, team, data);
         }).catch(() => {
             cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
@@ -1123,7 +1146,7 @@ function startPolling() {
 
     const teams = loadFollowedTeams();
     if (teams.length > 0) {
-        teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
+        teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams(), true), 120000);
     }
 
     headlinesInterval = setInterval(loadHeadlines, 600000);
@@ -1145,8 +1168,8 @@ function handleVisibilityChange() {
         // Refresh immediately on tab becoming visible
         const teams = loadFollowedTeams();
         if (teams.length > 0) {
-            fetchAllTeamData(teams);
-            teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
+            fetchAllTeamData(teams, true);
+            teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams(), true), 120000);
         }
         loadHeadlines();
         headlinesInterval = setInterval(loadHeadlines, 600000);
