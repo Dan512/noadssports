@@ -535,11 +535,11 @@ function sanitizeAttr(str) {
 // --- Team Badge Helper -------------------------------------------------------
 
 function getTeamBadge(team) {
-    // If badge URL already set, use it
+    // If badge URL already set (pro teams from TheSportsDB), use it
     if (team.badge) return team.badge;
-    // NCAA teams: generate logo URL from school slug
+    // NCAA teams: use locally hosted logos
     if (team.source === 'ncaa' && team.id) {
-        return `https://ncaa-api.henrygd.me/logo/${encodeURIComponent(team.id)}.svg`;
+        return `/img/ncaa/${encodeURIComponent(team.id)}.svg`;
     }
     return '';
 }
@@ -615,7 +615,7 @@ function renderTeamCards() {
     teamCardsContainer.innerHTML = visibleTeams.map(team => {
         const teamKey = `${team.source}:${team.id}`;
         const badgeUrl = getTeamBadge(team);
-        const badge = badgeUrl ? `<img class="team-card-badge" src="${sanitizeAttr(badgeUrl)}" alt="" loading="lazy">` : '<div class="team-card-badge"></div>';
+        const badge = badgeUrl ? `<img class="team-card-badge" src="${sanitizeAttr(badgeUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="team-card-badge"></div>';
         return `
             <div class="team-card" data-team-key="${sanitizeAttr(teamKey)}">
                 <button class="team-card-remove" title="Remove team" data-team-id="${sanitizeAttr(team.id)}" data-source="${sanitizeAttr(team.source)}">&times;</button>
@@ -870,7 +870,7 @@ function renderSearchResults(teams) {
     modalSearchResults.innerHTML = teams.map(team => {
         const teamData = JSON.stringify(team);
         const badge = team.badge
-            ? `<img class="search-result-badge" src="${sanitizeAttr(team.badge)}" alt="" loading="lazy">`
+            ? `<img class="search-result-badge" src="${sanitizeAttr(team.badge)}" alt="" loading="lazy" onerror="this.style.display='none'">`
             : '<div class="search-result-badge"></div>';
         return `
             <div class="search-result-item" data-team='${sanitizeAttr(teamData)}'>
@@ -941,12 +941,12 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
 
             if (ncaaTeams.length > 0) {
                 browseTeamList.innerHTML = ncaaTeams.map(t => {
-                    const teamData = JSON.stringify({
-                        id: t.id, name: t.n, league: leagueLabel,
-                        leagueId: t.li, sport: t.s, badge: t.b || '', source: 'ncaa'
-                    });
-                    const badge = t.b
-                        ? `<img class="browse-team-badge" src="${sanitizeAttr(t.b)}" alt="" loading="lazy">`
+                    const team = { id: t.id, name: t.n, league: leagueLabel,
+                        leagueId: t.li, sport: t.s, badge: t.b || '', source: 'ncaa' };
+                    team.badge = getTeamBadge(team);
+                    const teamData = JSON.stringify(team);
+                    const badge = team.badge
+                        ? `<img class="browse-team-badge" src="${sanitizeAttr(team.badge)}" alt="" loading="lazy" onerror="this.style.display='none'">`
                         : '<div class="browse-team-badge"></div>';
                     return `
                         <div class="browse-team-item" data-team='${sanitizeAttr(teamData)}'>
