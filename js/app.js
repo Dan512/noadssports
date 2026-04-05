@@ -537,9 +537,9 @@ function sanitizeAttr(str) {
 function getTeamBadge(team) {
     // If badge URL already set (pro teams from TheSportsDB), use it
     if (team.badge) return team.badge;
-    // NCAA teams: use locally hosted logos
+    // NCAA teams: use locally hosted PNG logos
     if (team.source === 'ncaa' && team.id) {
-        return `/img/ncaa/${encodeURIComponent(team.id)}.svg`;
+        return `/img/ncaa/${encodeURIComponent(team.id)}.png`;
     }
     return '';
 }
