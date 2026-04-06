@@ -694,6 +694,15 @@ function renderTabBar() {
             renderTabBar();
         });
     }
+
+    // Re-append settings gear to tab bar if header is hidden
+    if (!getSettingsBool('showHeader')) {
+        const headerSettings = document.getElementById('header-settings');
+        if (headerSettings) {
+            tabBar.appendChild(headerSettings);
+            headerSettings.hidden = false;
+        }
+    }
 }
 
 function renderTeamCards() {
