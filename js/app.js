@@ -1529,7 +1529,8 @@ async function loadHeadlines() {
             let url = (h.link || h.url || '#').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim();
             const source = h.source ? `<span class="headline-source">${sanitizeText(h.source)}</span>` : '';
             const followedBadge = (h.isTabTeam || h.isFollowed) ? '<span class="headline-followed" title="Your team">&#9733;</span>' : '';
-            return `<div class="headline-item">${followedBadge}<div class="headline-content"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${source}</div></div>`;
+            const desc = h.desc ? `<span class="headline-desc">${sanitizeText(h.desc)}</span>` : '';
+            return `<div class="headline-item">${followedBadge}<div class="headline-content"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${desc}${source}</div></div>`;
         }).join('');
         boxes.forEach(box => { box.innerHTML = html; });
     } catch (err) {

@@ -903,6 +903,14 @@ body.layout-locked .section-controls {
     color: var(--accent);
 }
 
+.headline-desc {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+    line-height: 1.4;
+}
+
 .headline-source {
     display: block;
     font-size: 0.7rem;
