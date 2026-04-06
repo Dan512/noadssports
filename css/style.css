@@ -822,11 +822,54 @@ body.layout-locked .section-controls {
 
 /* Dashboard headlines card */
 .dashboard-headlines {
+    position: relative;
     background: var(--card-bg);
     border-radius: 12px;
     padding: 1.25rem;
     box-shadow: var(--card-shadow);
     margin-top: 1rem;
+}
+
+.headlines-dismiss {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0.25rem;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.dashboard-headlines:hover .headlines-dismiss {
+    opacity: 0.5;
+}
+
+.headlines-dismiss:hover {
+    opacity: 1 !important;
+    color: var(--loss);
+}
+
+.headlines-restore {
+    display: block;
+    margin: 0.75rem auto;
+    padding: 0.4rem 0.8rem;
+    background: var(--card-bg);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.headlines-restore:hover {
+    background: var(--btn-hover-bg);
+    color: var(--text);
 }
 
 .dashboard-headlines h3 {
@@ -839,6 +882,8 @@ body.layout-locked .section-controls {
 }
 
 .headline-item {
+    display: flex;
+    align-items: baseline;
     padding: 0.4rem 0;
     border-bottom: 1px solid var(--border-light);
 }
@@ -863,6 +908,18 @@ body.layout-locked .section-controls {
     font-size: 0.7rem;
     color: var(--text-muted);
     margin-top: 0.1rem;
+}
+
+.headline-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.headline-followed {
+    color: var(--accent);
+    font-size: 0.75rem;
+    margin-right: 0.35rem;
+    flex-shrink: 0;
 }
 
 .text-muted {

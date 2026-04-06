@@ -568,7 +568,30 @@ function renderDashboard() {
         applySettings();
         renderTabBar();
         renderTeamCards();
+        renderHeadlinesRestore();
         fetchAllTeamData(teams);
+    }
+}
+
+function renderHeadlinesRestore() {
+    // Show a "Show Headlines" link when headlines are hidden for this tab
+    let restoreLink = document.getElementById('headlines-restore');
+    if (isHeadlinesHiddenForTab()) {
+        if (!restoreLink) {
+            restoreLink = document.createElement('button');
+            restoreLink.id = 'headlines-restore';
+            restoreLink.className = 'headlines-restore';
+            restoreLink.textContent = 'Show Headlines';
+            restoreLink.addEventListener('click', () => {
+                showHeadlinesForTab();
+                renderHeadlinesRestore();
+            });
+            const dashboard = document.getElementById('dashboard');
+            dashboard.appendChild(restoreLink);
+        }
+        restoreLink.hidden = false;
+    } else {
+        if (restoreLink) restoreLink.hidden = true;
     }
 }
 
@@ -684,6 +707,8 @@ function renderTabBar() {
                     visibleTeams = teams.filter(t => allowedKeys.has(`${t.source}:${t.id}`));
                 }
                 fetchAllTeamData(visibleTeams);
+                loadHeadlines();
+                renderHeadlinesRestore();
             });
         });
 
@@ -746,8 +771,9 @@ function renderTeamCards() {
 }
 
 // In-memory cache for team data (avoids re-fetching on tab switch)
-const teamDataCache = new Map(); // teamKey -> { data, timestamp }
-const TEAM_CACHE_TTL = 120000; // 2 minutes
+const teamDataCache = new Map(); // teamKey -> { data, timestamp, hasLiveGame }
+const CACHE_TTL_LIVE = 120000;     // 2 min for teams with a live game
+const CACHE_TTL_STATIC = 3600000;  // 1 hour for teams with no live game
 
 function fetchAllTeamData(teams, forceRefresh) {
     for (const team of teams) {
@@ -755,11 +781,14 @@ function fetchAllTeamData(teams, forceRefresh) {
         const cardData = document.getElementById(`card-data-${teamKey}`);
         if (!cardData) continue;
 
-        // Use cache if fresh enough
+        // Use cache if fresh enough — live games expire faster
         const cached = teamDataCache.get(teamKey);
-        if (!forceRefresh && cached && (Date.now() - cached.timestamp < TEAM_CACHE_TTL)) {
-            renderTeamCardData(cardData, team, cached.data);
-            continue;
+        if (!forceRefresh && cached) {
+            const ttl = cached.hasLiveGame ? CACHE_TTL_LIVE : CACHE_TTL_STATIC;
+            if (Date.now() - cached.timestamp < ttl) {
+                renderTeamCardData(cardData, team, cached.data);
+                continue;
+            }
         }
 
         cardData.innerHTML = '<p class="team-card-loading">Loading...</p>';
@@ -784,7 +813,11 @@ function fetchTsdbTeamData(team, teamKey, cardData) {
             lastEvents: lastRes.status === 'fulfilled' ? (lastRes.value?.results || []) : [],
             standings: standingsRes.status === 'fulfilled' && standingsRes.value ? (standingsRes.value?.table || []) : []
         };
-        teamDataCache.set(teamKey, { data, timestamp: Date.now() });
+        // Check if any next event is currently live
+        const hasLiveGame = data.nextEvents.some(e =>
+            e.strStatus && e.strStatus !== 'Not Started' && e.strStatus !== 'Match Finished'
+        );
+        teamDataCache.set(teamKey, { data, timestamp: Date.now(), hasLiveGame });
         renderTeamCardData(cardData, team, data);
     }).catch(() => {
         cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
@@ -855,7 +888,8 @@ function fetchNcaaTeamData(team, teamKey, cardData) {
             }
         }
 
-        teamDataCache.set(teamKey, { data, timestamp: Date.now() });
+        const hasLiveGame = data.nextEvents.some(e => e.strStatus && e.strStatus !== 'Not Started' && e.strStatus !== 'Final');
+        teamDataCache.set(teamKey, { data, timestamp: Date.now(), hasLiveGame });
         renderTeamCardData(cardData, team, data);
     }).catch(() => {
         cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
@@ -919,13 +953,15 @@ function renderTeamCardData(cardEl, team, data) {
             s.idTeam === team.id || s.strTeam === team.name
         );
         if (entry) {
-            const rank = entry.intRank || entry.intPos || '?';
-            const league = entry.strLeague || team.league || '';
+            const rank = entry.intRank || entry.intPos || null;
+            const league = entry.strLeague || entry.conference || team.league || '';
             const wins = entry.intWin || 0;
             const losses = entry.intLoss || 0;
             const draws = entry.intDraw || 0;
             const pts = entry.intPoints;
-            let standingsStr = `#${rank} in ${sanitizeText(league)} \u00b7 ${wins}W-${losses}L-${draws}D`;
+            let standingsStr = rank ? `#${rank} in ` : '';
+            standingsStr += `${sanitizeText(league)} \u00b7 ${wins}W-${losses}L`;
+            if (parseInt(draws)) standingsStr += `-${draws}D`;
             if (pts !== undefined && pts !== null) standingsStr += ` \u00b7 ${pts} Pts`;
             html += `<p class="team-card-standings">${standingsStr}</p>`;
         }
@@ -1360,13 +1396,56 @@ confirmAddTeamBtn.addEventListener('click', () => {
     syncPushSubscription();
 });
 
-// --- Headlines (Task 11) ----------------------------------------------------
+// --- Headlines ---------------------------------------------------------------
+
+function getHiddenHeadlineTabs() {
+    return JSON.parse(localStorage.getItem('hiddenHeadlineTabs') || '[]');
+}
+
+function setHiddenHeadlineTabs(tabs) {
+    localStorage.setItem('hiddenHeadlineTabs', JSON.stringify(tabs));
+}
+
+function isHeadlinesHiddenForTab() {
+    const activeTab = getActiveTab();
+    return getHiddenHeadlineTabs().includes(activeTab);
+}
+
+function hideHeadlinesForTab() {
+    const activeTab = getActiveTab();
+    const hidden = getHiddenHeadlineTabs();
+    if (!hidden.includes(activeTab)) {
+        hidden.push(activeTab);
+        setHiddenHeadlineTabs(hidden);
+    }
+    const box = document.getElementById('dashboard-headlines');
+    if (box) box.hidden = true;
+}
+
+function showHeadlinesForTab() {
+    const activeTab = getActiveTab();
+    const hidden = getHiddenHeadlineTabs();
+    setHiddenHeadlineTabs(hidden.filter(t => t !== activeTab));
+    const box = document.getElementById('dashboard-headlines');
+    if (box) {
+        box.hidden = false;
+        loadHeadlines();
+    }
+}
+
+// Dismiss button
+document.getElementById('headlines-dismiss')?.addEventListener('click', hideHeadlinesForTab);
 
 async function loadHeadlines() {
-    // Load into both empty-state box and dashboard box
+    // Hide/show dashboard headlines based on per-tab preference
+    const dashboardBox = document.getElementById('dashboard-headlines');
+    if (dashboardBox) {
+        dashboardBox.hidden = isHeadlinesHiddenForTab();
+    }
+
     const boxes = [
         document.getElementById('headlines-box'),
-        document.getElementById('dashboard-headlines'),
+        dashboardBox && !dashboardBox.hidden ? dashboardBox : null,
     ].filter(Boolean);
 
     if (boxes.length === 0) return;
@@ -1383,12 +1462,64 @@ async function loadHeadlines() {
             boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">No headlines available.</p>'; });
             return;
         }
-        const html = '<h3>Headlines</h3>' + headlines.slice(0, 8).map(h => {
+
+        // Determine which teams are relevant to the active tab
+        const followedTeams = loadFollowedTeams();
+        const tabs = loadTabs();
+        const activeTabId = getActiveTab();
+        const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+
+        // Get teams visible on active tab
+        let tabTeams = followedTeams;
+        if (activeTab && !activeTab.teams.includes('all')) {
+            const allowedKeys = new Set(activeTab.teams);
+            tabTeams = followedTeams.filter(t => allowedKeys.has(`${t.source}:${t.id}`));
+        }
+
+        // Build name lists for matching
+        function buildNameList(teams) {
+            const full = teams.map(t => t.name.toLowerCase());
+            const short = teams.map(t => {
+                const parts = t.name.split(' ');
+                return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : t.name.toLowerCase();
+            });
+            return [...new Set([...full, ...short])].filter(n => n.length > 3);
+        }
+
+        const tabNames = buildNameList(tabTeams);
+        const allFollowedNames = buildNameList(followedTeams);
+        const showAllNews = getSettingsBool('showAllNews');
+
+        const tagged = headlines.map(h => {
+            const titleLower = (h.title || '').toLowerCase();
+            const isTabTeam = tabNames.some(name => titleLower.includes(name));
+            const isFollowed = allFollowedNames.some(name => titleLower.includes(name));
+            return { ...h, isTabTeam, isFollowed };
+        });
+
+        // Filter based on active tab + settings
+        let filtered;
+        if (activeTab && activeTab.id !== 'main') {
+            // Non-main tab: show tab-relevant headlines first, fill with general if showAllNews
+            filtered = showAllNews ? tagged : tagged.filter(h => h.isTabTeam);
+            filtered.sort((a, b) => (b.isTabTeam ? 2 : b.isFollowed ? 1 : 0) - (a.isTabTeam ? 2 : a.isFollowed ? 1 : 0));
+        } else {
+            // Main tab: followed teams first, then general
+            filtered = showAllNews ? tagged : tagged.filter(h => h.isFollowed);
+            filtered.sort((a, b) => (b.isFollowed ? 1 : 0) - (a.isFollowed ? 1 : 0));
+        }
+
+        if (filtered.length === 0) {
+            boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">No matching headlines.</p>'; });
+            return;
+        }
+
+        const html = '<h3>Headlines</h3>' + filtered.slice(0, 10).map(h => {
             const title = sanitizeText(h.title || 'Untitled');
-            // Strip CDATA wrapping from links
             let url = (h.link || h.url || '#').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim();
             const source = h.source ? `<span class="headline-source">${sanitizeText(h.source)}</span>` : '';
-            return `<div class="headline-item"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${source}</div>`;
+            const followedBadge = (h.isTabTeam || h.isFollowed) ? '<span class="headline-followed" title="Your team">&#9733;</span>' : '';
+            return `<div class="headline-item">${followedBadge}<div class="headline-content"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${source}</div></div>`;
         }).join('');
         boxes.forEach(box => { box.innerHTML = html; });
     } catch (err) {
@@ -1515,12 +1646,13 @@ function applySettings() {
         cb.addEventListener('change', () => {
             setSettingBool(cb.dataset.setting, cb.checked);
             applySettings();
+            if (cb.dataset.setting === 'showAllNews') loadHeadlines();
         });
     });
 
     // Restore defaults
     document.getElementById('settings-revert').addEventListener('click', () => {
-        ['showHeader', 'showSupportBtn', 'showThemeToggle'].forEach(k => {
+        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews'].forEach(k => {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
