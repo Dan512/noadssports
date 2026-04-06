@@ -618,6 +618,93 @@ body.layout-locked .section-controls {
     border-color: var(--accent);
 }
 
+/* Tab edit mode */
+.tab-edit-btn {
+    padding: 0.35rem 0.6rem;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s;
+}
+
+.tab-edit-btn:hover {
+    background: var(--btn-hover-bg);
+    color: var(--text);
+}
+
+.tab-edit-btn.done {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.tab-edit-btn.done:hover {
+    background: var(--accent-hover);
+}
+
+.tab-pill.editing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.4rem;
+    background: var(--card-bg);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    cursor: grab;
+}
+
+.tab-pill.editing[draggable="false"] {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.tab-rename-input {
+    width: 80px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text);
+    outline: none;
+}
+
+.tab-rename-input:focus {
+    border-color: var(--accent);
+}
+
+.tab-rename-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tab-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.2rem;
+    line-height: 1;
+}
+
+.tab-delete-btn:hover {
+    color: var(--loss);
+}
+
+.tab-dragging {
+    opacity: 0.5;
+}
+
+.tab-drag-over {
+    border-color: var(--accent) !important;
+    border-style: solid !important;
+}
+
 /* --- Empty State --- */
 .empty-state {
     max-width: 560px;

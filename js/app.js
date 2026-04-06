@@ -565,6 +565,8 @@ function renderDashboard() {
     }
 }
 
+let tabEditMode = false;
+
 function renderTabBar() {
     const tabs = loadTabs();
     if (tabs.length < 2) {
@@ -573,28 +575,107 @@ function renderTabBar() {
     }
     tabBar.hidden = false;
     const activeTab = getActiveTab();
-    tabBar.innerHTML = tabs.map(tab => {
-        const isActive = tab.id === activeTab ? ' active' : '';
-        return `<button class="tab-pill${isActive}" data-tab-id="${sanitizeAttr(tab.id)}">${sanitizeText(tab.label)}</button>`;
-    }).join('');
 
-    tabBar.querySelectorAll('.tab-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            setActiveTab(btn.dataset.tabId);
+    if (tabEditMode) {
+        tabBar.innerHTML = tabs.map(tab => {
+            const isMain = tab.id === 'main';
+            return `<div class="tab-pill editing" data-tab-id="${sanitizeAttr(tab.id)}" draggable="${isMain ? 'false' : 'true'}">
+                <input type="text" class="tab-rename-input" value="${sanitizeAttr(tab.label)}" ${isMain ? 'disabled' : ''}>
+                ${isMain ? '' : `<button class="tab-delete-btn" data-tab-id="${sanitizeAttr(tab.id)}" title="Delete tab">&times;</button>`}
+            </div>`;
+        }).join('') + '<button class="tab-edit-btn done" id="tab-done-btn">Done</button>';
+
+        // Done button
+        document.getElementById('tab-done-btn').addEventListener('click', () => {
+            // Save all renamed tabs
+            const currentTabs = loadTabs();
+            tabBar.querySelectorAll('.tab-rename-input').forEach(input => {
+                const tabId = input.closest('.tab-pill').dataset.tabId;
+                const tab = currentTabs.find(t => t.id === tabId);
+                if (tab && input.value.trim()) {
+                    tab.label = input.value.trim();
+                }
+            });
+            saveTabs(currentTabs);
+            tabEditMode = false;
             renderTabBar();
-            renderTeamCards();
-            // Fetch data for the newly visible teams
-            const teams = loadFollowedTeams();
-            const tabs = loadTabs();
-            const activeTab = tabs.find(t => t.id === btn.dataset.tabId) || tabs[0];
-            let visibleTeams = teams;
-            if (activeTab && !activeTab.teams.includes('all')) {
-                const allowedKeys = new Set(activeTab.teams);
-                visibleTeams = teams.filter(t => allowedKeys.has(`${t.source}:${t.id}`));
-            }
-            fetchAllTeamData(visibleTeams);
         });
-    });
+
+        // Delete buttons
+        tabBar.querySelectorAll('.tab-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tabId;
+                if (confirm(`Delete the "${tabs.find(t => t.id === tabId)?.label}" tab?`)) {
+                    removeTab(tabId);
+                    if (getActiveTab() === tabId) setActiveTab('main');
+                    renderTabBar();
+                    renderTeamCards();
+                }
+            });
+        });
+
+        // Drag to reorder
+        let dragTab = null;
+        tabBar.querySelectorAll('.tab-pill[draggable="true"]').forEach(pill => {
+            pill.addEventListener('dragstart', (e) => {
+                dragTab = pill.dataset.tabId;
+                pill.classList.add('tab-dragging');
+            });
+            pill.addEventListener('dragend', () => {
+                pill.classList.remove('tab-dragging');
+                dragTab = null;
+            });
+        });
+        tabBar.querySelectorAll('.tab-pill').forEach(pill => {
+            pill.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                pill.classList.add('tab-drag-over');
+            });
+            pill.addEventListener('dragleave', () => {
+                pill.classList.remove('tab-drag-over');
+            });
+            pill.addEventListener('drop', (e) => {
+                e.preventDefault();
+                pill.classList.remove('tab-drag-over');
+                if (!dragTab || dragTab === pill.dataset.tabId) return;
+                const currentTabs = loadTabs();
+                const fromIdx = currentTabs.findIndex(t => t.id === dragTab);
+                const toIdx = currentTabs.findIndex(t => t.id === pill.dataset.tabId);
+                if (fromIdx === -1 || toIdx === -1) return;
+                const [moved] = currentTabs.splice(fromIdx, 1);
+                currentTabs.splice(toIdx, 0, moved);
+                saveTabs(currentTabs);
+                renderTabBar();
+            });
+        });
+    } else {
+        tabBar.innerHTML = tabs.map(tab => {
+            const isActive = tab.id === activeTab ? ' active' : '';
+            return `<button class="tab-pill${isActive}" data-tab-id="${sanitizeAttr(tab.id)}">${sanitizeText(tab.label)}</button>`;
+        }).join('') + '<button class="tab-edit-btn" id="tab-edit-btn" title="Edit tabs">&#9998;</button>';
+
+        tabBar.querySelectorAll('.tab-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setActiveTab(btn.dataset.tabId);
+                renderTabBar();
+                renderTeamCards();
+                const teams = loadFollowedTeams();
+                const allTabs = loadTabs();
+                const active = allTabs.find(t => t.id === btn.dataset.tabId) || allTabs[0];
+                let visibleTeams = teams;
+                if (active && !active.teams.includes('all')) {
+                    const allowedKeys = new Set(active.teams);
+                    visibleTeams = teams.filter(t => allowedKeys.has(`${t.source}:${t.id}`));
+                }
+                fetchAllTeamData(visibleTeams);
+            });
+        });
+
+        document.getElementById('tab-edit-btn').addEventListener('click', () => {
+            tabEditMode = true;
+            renderTabBar();
+        });
+    }
 }
 
 function renderTeamCards() {
