@@ -941,8 +941,8 @@ function renderTeamCardData(cardEl, team, data) {
     // Last result
     const lastEvent = data.lastEvents[0];
     if (lastEvent) {
-        const homeScore = parseInt(lastEvent.intHomeScore, 10);
-        const awayScore = parseInt(lastEvent.intAwayScore, 10);
+        const homeScore = parseInt(lastEvent.intHomeScore, 10) || 0;
+        const awayScore = parseInt(lastEvent.intAwayScore, 10) || 0;
         const isHome = lastEvent.idHomeTeam === team.id || lastEvent.strHomeTeam === team.name;
         const won = isHome ? homeScore > awayScore : awayScore > homeScore;
         const draw = homeScore === awayScore;
@@ -1561,7 +1561,7 @@ function startPolling() {
 
     const teams = loadFollowedTeams();
     if (teams.length > 0) {
-        teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams(), true), 120000);
+        teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
     }
 
     headlinesInterval = setInterval(loadHeadlines, 600000);
@@ -1583,8 +1583,8 @@ function handleVisibilityChange() {
         // Refresh immediately on tab becoming visible
         const teams = loadFollowedTeams();
         if (teams.length > 0) {
-            fetchAllTeamData(teams, true);
-            teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams(), true), 120000);
+            fetchAllTeamData(teams);
+            teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
         }
         loadHeadlines();
         headlinesInterval = setInterval(loadHeadlines, 600000);
@@ -1742,6 +1742,77 @@ function applySettings() {
             radio.addEventListener('change', () => {
                 if (radio.checked) setLanguage(radio.value);
             });
+        });
+    }
+
+    // Notifications popover
+    const notifBtn = document.getElementById('notifications-btn');
+    const notifPopover = document.getElementById('notifications-popover');
+    const notifList = document.getElementById('notifications-list');
+    if (notifBtn && notifPopover && notifList) {
+        notifBtn.textContent = t('manageNotifications') || 'Manage Notifications';
+
+        function renderNotifList() {
+            const teams = loadFollowedTeams();
+            if (teams.length === 0) {
+                notifList.innerHTML = `<p class="text-muted">${t('noTeamsInTab') || 'No teams added yet.'}</p>`;
+                return;
+            }
+
+            const allPrefs = loadNotificationPrefs();
+            notifList.innerHTML = teams.map(team => {
+                const teamKey = `${team.source}:${team.id}`;
+                const prefs = allPrefs[teamKey] || { gameStart: false, finalScore: false, closeGame: false, teamNews: false };
+                const badgeUrl = getTeamBadge(team);
+                const badge = badgeUrl ? `<img src="${sanitizeAttr(badgeUrl)}" alt="" onerror="this.style.display='none'">` : '';
+
+                return `<div class="notif-team" data-team-key="${sanitizeAttr(teamKey)}">
+                    <div class="notif-team-header">
+                        ${badge}
+                        <span class="notif-team-name">${sanitizeText(team.name)}</span>
+                        <span class="notif-team-league">${sanitizeText(team.league || '')}</span>
+                    </div>
+                    <div class="notif-checkboxes">
+                        <label><input type="checkbox" data-notif="gameStart" ${prefs.gameStart ? 'checked' : ''}> ${t('notifGameStart')}</label>
+                        <label><input type="checkbox" data-notif="finalScore" ${prefs.finalScore ? 'checked' : ''}> ${t('notifFinalScore')}</label>
+                        <label><input type="checkbox" data-notif="closeGame" ${prefs.closeGame ? 'checked' : ''}> ${t('notifCloseGame')}</label>
+                        <label><input type="checkbox" data-notif="teamNews" ${prefs.teamNews ? 'checked' : ''}> ${t('notifTeamNews')}</label>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Wire up checkbox changes
+            notifList.querySelectorAll('.notif-team').forEach(teamEl => {
+                const teamKey = teamEl.dataset.teamKey;
+                const [source, ...idParts] = teamKey.split(':');
+                const teamId = idParts.join(':');
+                teamEl.querySelectorAll('input[data-notif]').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const currentPrefs = loadNotificationPrefs();
+                        if (!currentPrefs[teamKey]) currentPrefs[teamKey] = {};
+                        currentPrefs[teamKey][cb.dataset.notif] = cb.checked;
+                        saveNotificationPrefs(currentPrefs);
+                        syncPushSubscription();
+                    });
+                });
+            });
+        }
+
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popover.hidden = true;
+            notifPopover.hidden = !notifPopover.hidden;
+            if (!notifPopover.hidden) renderNotifList();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notifPopover.hidden && !notifPopover.contains(e.target) && e.target !== notifBtn) {
+                notifPopover.hidden = true;
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !notifPopover.hidden) notifPopover.hidden = true;
         });
     }
 

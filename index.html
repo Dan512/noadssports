@@ -101,7 +101,7 @@
         <p>This site does not use cookies, does not track you, and does not collect any personal information. We don't use analytics, fingerprinting, or any form of user tracking.</p>
         <p>When you search for a team or league, requests are sent to third-party sports data APIs to retrieve scores and schedules. No personal data is transmitted.</p>
         <p>Your preferences (dark mode, layout, and notification settings) are saved in your browser's local storage (not a cookie) so they persist between visits. You can clear this anytime by clearing your browser data.</p>
-        <p>If you enable push notifications, a randomly generated subscription token and your chosen teams are stored on our server so we can send you game alerts. This token is not linked to your identity in any way — we cannot tell who you are, what device you use, or correlate your visits. You can unsubscribe at any time by disabling notifications in your browser settings.</p>
+        <p>If you enable push notifications, a randomly generated subscription token and your chosen teams are stored on our server so we can send you game alerts. This token is not linked to your identity in any way — we cannot tell who you are, what device you use, or correlate your visits. You can manage or disable notifications for each team in Settings > Manage Notifications, or disable them entirely in your browser settings.</p>
         <p>If you submit feedback, only your message, feedback type, and language setting are sent to our server. No personal information, IP address, or device data is collected or stored with your feedback.</p>
         <p>This site is open source and supported by tips from our visitors. No data is sold, shared, or monetized in any way. If you think this is awesome, please consider <a href="https://ko-fi.com/noadsdude" target="_blank" rel="noopener" style="color:var(--accent);">clicking here to support us</a>.</p>
     </div>
@@ -118,12 +118,20 @@
         <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
         <label><input type="checkbox" data-setting="showAllNews" checked> Show news from all sports</label>
         <label><input type="checkbox" data-setting="showFeedbackBtn" checked> Show feedback button</label>
+        <button id="notifications-btn" class="settings-language-btn" type="button">Manage Notifications</button>
         <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
     </div>
     <!-- Language popover -->
     <div id="language-popover" class="language-popover" hidden>
         <h3>Language</h3>
         <div id="language-list" class="language-list"></div>
+    </div>
+    <!-- Notifications popover -->
+    <div id="notifications-popover" class="notifications-popover" hidden>
+        <h3>Notifications</h3>
+        <div id="notifications-list" class="notifications-list">
+            <p class="text-muted">No teams added yet.</p>
+        </div>
     </div>
     <!-- Feedback button (between settings and theme toggle) -->
     <button id="feedback-toggle" class="fixed-btn feedback-fixed-btn" title="Send feedback" hidden>💬</button>
