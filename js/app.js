@@ -615,11 +615,19 @@ function renderTabBar() {
         tabBar.querySelectorAll('.tab-delete-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.dataset.tabId;
-                if (confirm(`Delete the "${tabs.find(t => t.id === tabId)?.label}" tab?`)) {
+                const tabLabel = tabs.find(t => t.id === tabId)?.label || tabId;
+                if (confirm(`Delete the "${tabLabel}" tab?`)) {
                     removeTab(tabId);
                     if (getActiveTab() === tabId) setActiveTab('main');
-                    renderTabBar();
-                    renderTeamCards();
+                    const remaining = loadTabs();
+                    if (remaining.length < 2) {
+                        tabEditMode = false;
+                        location.reload();
+                    } else {
+                        renderTabBar();
+                        renderTeamCards();
+                        fetchAllTeamData(loadFollowedTeams(), true);
+                    }
                 }
             });
         });
