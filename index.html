@@ -128,7 +128,13 @@
     </div>
     <!-- Notifications popover -->
     <div id="notifications-popover" class="notifications-popover" hidden>
-        <h3>Notifications</h3>
+        <div class="notif-header">
+            <h3>Notifications</h3>
+            <div class="notif-header-actions">
+                <button id="notif-enable-all" class="notif-toggle-btn">Enable all</button>
+                <button id="notif-disable-all" class="notif-toggle-btn">Disable all</button>
+            </div>
+        </div>
         <div id="notifications-list" class="notifications-list">
             <p class="text-muted">No teams added yet.</p>
         </div>

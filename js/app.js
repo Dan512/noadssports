@@ -1798,6 +1798,31 @@ function applySettings() {
             });
         }
 
+        // Enable/disable all buttons
+        document.getElementById('notif-enable-all').addEventListener('click', () => {
+            const teams = loadFollowedTeams();
+            const allPrefs = loadNotificationPrefs();
+            for (const team of teams) {
+                const key = `${team.source}:${team.id}`;
+                allPrefs[key] = { gameStart: true, finalScore: true, closeGame: true, teamNews: true };
+            }
+            saveNotificationPrefs(allPrefs);
+            syncPushSubscription();
+            renderNotifList();
+        });
+
+        document.getElementById('notif-disable-all').addEventListener('click', () => {
+            const teams = loadFollowedTeams();
+            const allPrefs = loadNotificationPrefs();
+            for (const team of teams) {
+                const key = `${team.source}:${team.id}`;
+                allPrefs[key] = { gameStart: false, finalScore: false, closeGame: false, teamNews: false };
+            }
+            saveNotificationPrefs(allPrefs);
+            syncPushSubscription();
+            renderNotifList();
+        });
+
         notifBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             popover.hidden = true;
