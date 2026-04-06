@@ -1500,11 +1500,16 @@ async function loadHeadlines() {
 
         const tagged = headlines.map(h => {
             const titleLower = (h.title || '').toLowerCase();
+            const descLower = (h.desc || '').toLowerCase();
+            const textToMatch = titleLower + ' ' + descLower;
             const hSport = h.sport || 'general';
-            // Match by team name in title OR by sport tag from RSS feed
-            const isTabTeam = tabNames.some(name => titleLower.includes(name)) || (hSport !== 'general' && tabSports.has(hSport));
-            const isFollowed = allFollowedNames.some(name => titleLower.includes(name)) || (hSport !== 'general' && allFollowedSports.has(hSport));
-            return { ...h, isTabTeam, isFollowed };
+            // Star only if a specific team name is mentioned in title or description
+            const isTabTeamName = tabNames.some(name => textToMatch.includes(name));
+            const isFollowedName = allFollowedNames.some(name => textToMatch.includes(name));
+            // Sport-level match (for filtering, not starring)
+            const isTabSport = hSport !== 'general' && tabSports.has(hSport);
+            const isFollowedSport = hSport !== 'general' && allFollowedSports.has(hSport);
+            return { ...h, isTabTeam: isTabTeamName || isTabSport, isFollowed: isFollowedName || isFollowedSport, isStarred: isTabTeamName || isFollowedName };
         });
 
         // Filter based on active tab + settings
@@ -1528,7 +1533,7 @@ async function loadHeadlines() {
             const title = sanitizeText(h.title || 'Untitled');
             let url = (h.link || h.url || '#').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim();
             const source = h.source ? `<span class="headline-source">${sanitizeText(h.source)}</span>` : '';
-            const followedBadge = (h.isTabTeam || h.isFollowed) ? '<span class="headline-followed" title="Your team">&#9733;</span>' : '';
+            const followedBadge = h.isStarred ? '<span class="headline-followed" title="Your team">&#9733;</span>' : '';
             const desc = h.desc ? `<span class="headline-desc">${sanitizeText(h.desc)}</span>` : '';
             return `<div class="headline-item">${followedBadge}<div class="headline-content"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${desc}${source}</div></div>`;
         }).join('');
