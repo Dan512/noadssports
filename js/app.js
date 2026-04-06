@@ -1074,7 +1074,7 @@ function renderTeamCardData(cardEl, team, data) {
     }
 
     // Last result
-    const lastEvent = data.lastEvents[0];
+    const lastEvent = (data.lastEvents || []).find(ev => ev.intHomeScore != null && ev.intAwayScore != null);
     if (lastEvent) {
         const homeScore = parseInt(lastEvent.intHomeScore, 10) || 0;
         const awayScore = parseInt(lastEvent.intAwayScore, 10) || 0;
@@ -1182,11 +1182,12 @@ function buildExpandedContent(expandedEl, team, data) {
     }
 
     // --- Recent Results ---
-    if (data.lastEvents && data.lastEvents.length > 0) {
+    const validResults = (data.lastEvents || []).filter(ev => ev.intHomeScore != null && ev.intAwayScore != null);
+    if (validResults.length > 0) {
         html += `<div class="expanded-section">`;
         html += `<h4>${t('recentResults')}</h4>`;
         html += `<div class="schedule-list">`;
-        for (const ev of data.lastEvents) {
+        for (const ev of validResults) {
             const homeScore = parseInt(ev.intHomeScore, 10) || 0;
             const awayScore = parseInt(ev.intAwayScore, 10) || 0;
             const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
