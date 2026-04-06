@@ -2007,6 +2007,94 @@ body.layout-locked .section-controls {
     text-decoration: underline;
 }
 
+/* ESPN Team Record */
+.team-record {
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.team-record .record-loading {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.record-main {
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+}
+
+.record-main strong {
+    font-size: 1.1rem;
+}
+
+.record-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.record-stat {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 0.15rem 0.55rem;
+    white-space: nowrap;
+}
+
+/* Season schedule divider */
+.season-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.season-divider::before,
+.season-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-medium);
+}
+
+/* Season schedule scrollable container */
+.season-schedule {
+    max-height: 400px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+/* Past games: slightly muted */
+.schedule-item.past {
+    opacity: 0.8;
+}
+
+.schedule-item.past:hover {
+    opacity: 1;
+}
+
+/* Future games: normal style */
+.schedule-item.future {
+    opacity: 1;
+}
+
+.schedule-loading {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 0.5rem 0;
+}
+
 /* Standings table */
 .standings-table {
     width: 100%;

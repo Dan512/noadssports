@@ -194,7 +194,15 @@ const api = (() => {
             if (!PROXY_URL) return Promise.resolve({ articles: [] });
             const lang = getCurrentLang();
             return fetchJSON(`${PROXY_URL}/news?lang=${lang}`);
-        }
+        },
+        getSeasonSchedule(leagueId, season, teamId) {
+            const params = { league: leagueId, season };
+            if (teamId) params.team = teamId;
+            return fetchJSON(`${PROXY_URL}/tsdb/season?${new URLSearchParams(params)}`);
+        },
+        getEspnTeamRecord(sport, league, espnId) {
+            return fetchJSON(`${PROXY_URL}/espn/team?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&id=${encodeURIComponent(espnId)}`);
+        },
     };
 })();
 
@@ -915,7 +923,7 @@ function fetchAllTeamData(teams, forceRefresh) {
 }
 
 function fetchTsdbTeamData(team, teamKey, cardData) {
-    const currentSeason = guessCurrentSeason();
+    const currentSeason = guessCurrentSeason(team.leagueId);
     Promise.allSettled([
         api.getTeamNextEvents(team.id),
         api.getTeamLastEvents(team.id),
@@ -1018,10 +1026,14 @@ function fetchNcaaTeamData(team, teamKey, cardData) {
     });
 }
 
-function guessCurrentSeason() {
+function guessCurrentSeason(leagueId) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth(); // 0-indexed
+    // Some leagues use single-year seasons (MLB, MLS, WNBA)
+    if (leagueId && SINGLE_YEAR_SEASON_LEAGUES.includes(String(leagueId))) {
+        return String(year);
+    }
     // For most sports, season straddles years; use prior year if before July
     return month < 6 ? `${year - 1}-${year}` : `${year}-${year + 1}`;
 }
@@ -1144,73 +1156,20 @@ function buildExpandedContent(expandedEl, team, data) {
     let html = '';
     const locale = getCurrentLang();
 
-    // --- Upcoming Schedule ---
-    if (data.nextEvents && data.nextEvents.length > 0) {
-        html += `<div class="expanded-section">`;
-        html += `<h4>${t('upcomingSchedule')}</h4>`;
-        html += `<div class="schedule-list">`;
-        for (const ev of data.nextEvents) {
-            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
-            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
-            const prefix = isHome ? t('vs') : t('at');
-
-            let dateStr = '';
-            if (ev.strTimestamp || ev.dateEvent) {
-                try {
-                    let raw = ev.strTimestamp || ev.dateEvent;
-                    if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
-                        raw += '+00:00';
-                    }
-                    const d = new Date(raw);
-                    if (!isNaN(d)) {
-                        dateStr = d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
-                        if (ev.strTimestamp) {
-                            dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-                        }
-                    }
-                } catch (e) { /* ignore */ }
-            }
-
-            const venue = ev.strVenue ? `<span class="schedule-venue">${sanitizeText(ev.strVenue)}</span>` : '';
-
-            html += `<div class="schedule-item">`;
-            html += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span> ${venue}</div>`;
-            html += `<span class="schedule-date">${dateStr}</span>`;
-            html += `</div>`;
-        }
-        html += `</div></div>`;
+    // --- ESPN Record placeholder (filled async) ---
+    const espnMapping = ESPN_LEAGUE_MAP[team.leagueId];
+    if (team.espnId && espnMapping) {
+        html += `<div class="expanded-section team-record" id="espn-record-${team.source}-${team.id}">
+            <div class="record-loading">${t('loading')}</div>
+        </div>`;
     }
 
-    // --- Recent Results ---
-    const validResults = (data.lastEvents || []).filter(ev => ev.intHomeScore != null && ev.intAwayScore != null);
-    if (validResults.length > 0) {
-        html += `<div class="expanded-section">`;
-        html += `<h4>${t('recentResults')}</h4>`;
-        html += `<div class="schedule-list">`;
-        for (const ev of validResults) {
-            const homeScore = parseInt(ev.intHomeScore, 10) || 0;
-            const awayScore = parseInt(ev.intAwayScore, 10) || 0;
-            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
-            const won = isHome ? homeScore > awayScore : awayScore > homeScore;
-            const draw = homeScore === awayScore;
-            const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
-
-            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
-            const prefix = isHome ? t('vs') : t('at');
-            const score = `${homeScore} - ${awayScore}`;
-
-            let highlightLink = '';
-            if (ev.strVideo) {
-                highlightLink = ` <a class="result-highlight" href="${sanitizeAttr(ev.strVideo)}" target="_blank" rel="noopener">\u25b6 ${t('watchHighlights')}</a>`;
-            }
-
-            html += `<div class="result-item ${resultClass}">`;
-            html += `<span>${prefix} ${sanitizeText(opponent)}</span>`;
-            html += `<span><span class="result-score">${score}</span>${highlightLink}</span>`;
-            html += `</div>`;
-        }
-        html += `</div></div>`;
-    }
+    // --- Season Schedule (replaces separate upcoming/results sections) ---
+    html += `<div class="expanded-section">`;
+    html += `<h4>${t('seasonSchedule')}</h4>`;
+    html += `<div class="schedule-list season-schedule" id="season-schedule-${team.source}-${team.id}">`;
+    html += `<div class="schedule-loading">${t('loading')}</div>`;
+    html += `</div></div>`;
 
     // --- League Standings ---
     if (data.standings && data.standings.length > 1) {
@@ -1221,6 +1180,286 @@ function buildExpandedContent(expandedEl, team, data) {
     }
 
     expandedEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
+
+    // --- Async: fetch ESPN record ---
+    if (team.espnId && espnMapping) {
+        fetchEspnRecord(team, espnMapping);
+    }
+
+    // --- Async: fetch season schedule ---
+    fetchSeasonSchedule(team, data, locale);
+}
+
+function fetchEspnRecord(team, espnMapping) {
+    const container = document.getElementById(`espn-record-${team.source}-${team.id}`);
+    if (!container) return;
+
+    api.getEspnTeamRecord(espnMapping.sport, espnMapping.league, team.espnId)
+        .then(espnData => {
+            if (!espnData || !espnData.team) {
+                container.remove();
+                return;
+            }
+            const teamData = espnData.team;
+            const record = teamData.record;
+            const standingSummary = teamData.standingSummary || '';
+
+            if (!record || !record.items || record.items.length === 0) {
+                container.remove();
+                return;
+            }
+
+            // Find overall record
+            const overall = record.items.find(r => r.type === 'total') || record.items[0];
+            const stats = overall.stats || [];
+            const getStat = (name) => {
+                const s = stats.find(st => st.name === name);
+                return s ? s.value : null;
+            };
+
+            const wins = getStat('wins');
+            const losses = getStat('losses');
+            const ties = getStat('ties');
+            const winPct = getStat('winPercent') || getStat('winPct');
+            const streak = getStat('streak');
+            const gamesBack = getStat('gamesBehind') || getStat('gamesBack');
+            const playoffSeed = getStat('playoffSeed');
+
+            if (wins === null && losses === null) {
+                container.remove();
+                return;
+            }
+
+            let recordStr = `${Math.round(wins)}-${Math.round(losses)}`;
+            if (ties !== null && ties > 0) recordStr += `-${Math.round(ties)}`;
+            let pctStr = '';
+            if (winPct !== null) pctStr = ` (.${String(Math.round(winPct * 1000)).padStart(3, '0')})`;
+
+            // Home/away records
+            const homeRec = record.items.find(r => r.type === 'home');
+            const awayRec = record.items.find(r => r.type === 'road' || r.type === 'away');
+            let homeAwayStr = '';
+            if (homeRec) {
+                homeAwayStr = homeRec.summary || '';
+            }
+            if (awayRec) {
+                if (homeAwayStr) homeAwayStr += ' / ';
+                homeAwayStr += awayRec.summary || '';
+            }
+
+            let recordHtml = `<div class="record-main">${t('overallRecord')}: <strong>${recordStr}</strong>${pctStr}</div>`;
+            recordHtml += `<div class="record-details">`;
+
+            if (homeRec && awayRec) {
+                recordHtml += `<span class="record-stat">${t('homeRecord')} ${homeRec.summary || ''}</span>`;
+                recordHtml += `<span class="record-stat">${t('awayRecord')} ${awayRec.summary || ''}</span>`;
+            }
+            if (streak !== null && streak !== 0) {
+                const streakVal = Math.round(streak);
+                const streakLabel = streakVal > 0 ? `W${streakVal}` : `L${Math.abs(streakVal)}`;
+                recordHtml += `<span class="record-stat">${t('streak')}: ${streakLabel}</span>`;
+            }
+            if (standingSummary) {
+                recordHtml += `<span class="record-stat">${sanitizeText(standingSummary)}</span>`;
+            }
+            if (gamesBack !== null && gamesBack > 0) {
+                recordHtml += `<span class="record-stat">${t('gamesBehind')}: ${gamesBack}</span>`;
+            }
+            if (playoffSeed !== null && playoffSeed > 0) {
+                recordHtml += `<span class="record-stat">#${Math.round(playoffSeed)} seed</span>`;
+            }
+            recordHtml += `</div>`;
+
+            container.innerHTML = recordHtml;
+        })
+        .catch(() => {
+            if (container) container.remove();
+        });
+}
+
+function fetchSeasonSchedule(team, existingData, locale) {
+    const container = document.getElementById(`season-schedule-${team.source}-${team.id}`);
+    if (!container) return;
+
+    if (team.source !== 'tsdb' || !team.leagueId) {
+        // For NCAA or teams without leagueId, fall back to existing next/last events
+        renderFallbackSchedule(container, team, existingData, locale);
+        return;
+    }
+
+    const currentSeason = guessCurrentSeason(team.leagueId);
+    api.getSeasonSchedule(team.leagueId, currentSeason, team.id)
+        .then(scheduleData => {
+            const events = scheduleData?.events || scheduleData?.event || [];
+            if (!events || events.length === 0) {
+                // Fall back to existing data
+                renderFallbackSchedule(container, team, existingData, locale);
+                return;
+            }
+
+            renderSeasonScheduleList(container, team, events, locale);
+        })
+        .catch(() => {
+            renderFallbackSchedule(container, team, existingData, locale);
+        });
+}
+
+function renderSeasonScheduleList(container, team, events, locale) {
+    const now = new Date();
+    let html = '';
+    let pastHtml = '';
+    let futureHtml = '';
+    let firstFutureIdx = -1;
+    let totalPast = 0;
+
+    for (let i = 0; i < events.length; i++) {
+        const ev = events[i];
+        const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
+        const opponent = isHome ? (ev.strAwayTeam || '') : (ev.strHomeTeam || '');
+        const prefix = isHome ? t('vs') : t('at');
+
+        let eventDate = null;
+        let dateStr = '';
+        try {
+            let raw = ev.strTimestamp || ev.dateEvent;
+            if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                raw += '+00:00';
+            }
+            eventDate = new Date(raw);
+            if (!isNaN(eventDate)) {
+                dateStr = eventDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+                if (ev.strTimestamp && eventDate > now) {
+                    dateStr += ' ' + eventDate.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        const isPast = ev.intHomeScore != null && ev.intAwayScore != null &&
+                       String(ev.intHomeScore).trim() !== '' && String(ev.intAwayScore).trim() !== '';
+
+        if (isPast) {
+            const homeScore = parseInt(ev.intHomeScore, 10) || 0;
+            const awayScore = parseInt(ev.intAwayScore, 10) || 0;
+            const won = isHome ? homeScore > awayScore : awayScore > homeScore;
+            const draw = homeScore === awayScore;
+            const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
+            const score = `${homeScore} - ${awayScore}`;
+
+            pastHtml += `<div class="schedule-item past ${resultClass}">`;
+            pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
+            pastHtml += `<span><span class="result-score">${score}</span> <span class="schedule-date">${dateStr}</span></span>`;
+            pastHtml += `</div>`;
+            totalPast++;
+        } else {
+            if (firstFutureIdx === -1) firstFutureIdx = i;
+            const venue = ev.strVenue ? `<span class="schedule-venue">${sanitizeText(ev.strVenue)}</span>` : '';
+
+            futureHtml += `<div class="schedule-item future">`;
+            futureHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span> ${venue}</div>`;
+            futureHtml += `<span class="schedule-date">${dateStr}</span>`;
+            futureHtml += `</div>`;
+        }
+    }
+
+    if (pastHtml) {
+        html += `<div class="season-past-games">${pastHtml}</div>`;
+    }
+    if (pastHtml && futureHtml) {
+        html += `<div class="season-divider"><span>${t('upcoming')}</span></div>`;
+    }
+    if (futureHtml) {
+        html += futureHtml;
+    }
+
+    container.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
+
+    // Scroll to the divider (current position) if there are past games
+    if (totalPast > 0) {
+        const divider = container.querySelector('.season-divider');
+        if (divider) {
+            // Scroll the schedule list so divider is near top
+            setTimeout(() => {
+                divider.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }, 100);
+        }
+    }
+}
+
+function renderFallbackSchedule(container, team, data, locale) {
+    let html = '';
+
+    // Past games (completed section)
+    const validResults = (data.lastEvents || []).filter(ev => ev.intHomeScore != null && ev.intAwayScore != null);
+    if (validResults.length > 0) {
+        html += `<div class="season-past-games">`;
+        for (const ev of validResults) {
+            const homeScore = parseInt(ev.intHomeScore, 10) || 0;
+            const awayScore = parseInt(ev.intAwayScore, 10) || 0;
+            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
+            const won = isHome ? homeScore > awayScore : awayScore > homeScore;
+            const draw = homeScore === awayScore;
+            const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
+            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+            const prefix = isHome ? t('vs') : t('at');
+            const score = `${homeScore} - ${awayScore}`;
+
+            let dateStr = '';
+            try {
+                let raw = ev.strTimestamp || ev.dateEvent;
+                if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                    raw += '+00:00';
+                }
+                const d = new Date(raw);
+                if (!isNaN(d)) {
+                    dateStr = d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+                }
+            } catch (e) { /* ignore */ }
+
+            html += `<div class="schedule-item past ${resultClass}">`;
+            html += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
+            html += `<span><span class="result-score">${score}</span> <span class="schedule-date">${dateStr}</span></span>`;
+            html += `</div>`;
+        }
+        html += `</div>`;
+    }
+
+    // Divider
+    if (validResults.length > 0 && data.nextEvents && data.nextEvents.length > 0) {
+        html += `<div class="season-divider"><span>${t('upcoming')}</span></div>`;
+    }
+
+    // Future games
+    if (data.nextEvents && data.nextEvents.length > 0) {
+        for (const ev of data.nextEvents) {
+            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
+            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+            const prefix = isHome ? t('vs') : t('at');
+
+            let dateStr = '';
+            try {
+                let raw = ev.strTimestamp || ev.dateEvent;
+                if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                    raw += '+00:00';
+                }
+                const d = new Date(raw);
+                if (!isNaN(d)) {
+                    dateStr = d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
+                    if (ev.strTimestamp) {
+                        dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
+            const venue = ev.strVenue ? `<span class="schedule-venue">${sanitizeText(ev.strVenue)}</span>` : '';
+
+            html += `<div class="schedule-item future">`;
+            html += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span> ${venue}</div>`;
+            html += `<span class="schedule-date">${dateStr}</span>`;
+            html += `</div>`;
+        }
+    }
+
+    container.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
 }
 
 function renderStandingsTable(standings, team) {
@@ -1420,7 +1659,8 @@ async function searchTeams(query) {
             leagueId: team.idLeague,
             sport: team.strSport,
             badge: team.strBadge || '',
-            source: 'tsdb'
+            source: 'tsdb',
+            espnId: team.idESPN || ''
         }));
         renderSearchResults(teams);
     } catch (err) {
@@ -1503,7 +1743,8 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
                 leagueId: leagueId,
                 sport: sport || team.strSport,
                 badge: team.strBadge || '',
-                source: 'tsdb'
+                source: 'tsdb',
+                espnId: team.idESPN || ''
             });
             const badge = team.strBadge
                 ? `<img class="browse-team-badge" src="${sanitizeAttr(team.strBadge)}" alt="" loading="lazy">`
@@ -1653,7 +1894,8 @@ confirmAddTeamBtn.addEventListener('click', () => {
         leagueId: team.leagueId,
         sport: team.sport,
         badge: team.badge,
-        source: team.source
+        source: team.source,
+        espnId: team.espnId || ''
     });
 
     // Process tab checkboxes
@@ -1757,6 +1999,19 @@ const LEAGUE_TO_SPORT_TAG = {
     'American Football': 'NFL', 'Basketball': 'NBA', 'Baseball': 'MLB', 'Ice Hockey': 'NHL',
     'Soccer': 'MLS',
 };
+
+// ESPN sport/league mapping for fetching team records
+const ESPN_LEAGUE_MAP = {
+    '4391': { sport: 'football', league: 'nfl' },       // NFL
+    '4387': { sport: 'basketball', league: 'nba' },     // NBA
+    '4424': { sport: 'baseball', league: 'mlb' },       // MLB
+    '4380': { sport: 'hockey', league: 'nhl' },         // NHL
+    '4516': { sport: 'basketball', league: 'wnba' },    // WNBA
+    '4346': { sport: 'soccer', league: 'usa.1' },       // MLS
+};
+
+// Leagues that use single-year seasons (e.g. "2026" not "2025-2026")
+const SINGLE_YEAR_SEASON_LEAGUES = ['4424', '4346', '4516']; // MLB, MLS, WNBA
 
 function openWhereToWatch(sportTag, anchorEl) {
     if (!getSettingsBool('showWhereToWatch')) return;
