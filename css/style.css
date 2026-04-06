@@ -78,6 +78,116 @@ body {
     margin-top: 0.5rem;
 }
 
+/* Compact header (when user has teams) */
+.home-header.compact {
+    padding: 0.75rem 0 0.5rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.home-header.compact h1 {
+    font-size: 1.2rem;
+}
+
+.home-header.compact .tagline {
+    font-size: 0.85rem;
+    margin-top: 0;
+}
+
+/* Header settings */
+.header-settings {
+    position: relative;
+    margin-left: auto;
+}
+
+.home-header.compact .header-settings {
+    align-self: center;
+}
+
+.settings-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    transition: background 0.2s, color 0.2s;
+}
+
+.settings-btn:hover {
+    background: var(--btn-hover-bg);
+    color: var(--text);
+}
+
+.settings-popover {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.25rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    min-width: 240px;
+    max-width: calc(100vw - 2rem);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 1002;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.settings-popover[hidden] {
+    display: none;
+}
+
+.settings-popover label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.15s;
+}
+
+.settings-popover label:hover {
+    background: var(--btn-hover-bg);
+}
+
+.settings-popover input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.settings-revert-btn {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--btn-hover-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text);
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.settings-revert-btn:hover {
+    background: var(--border);
+}
+
+/* Hidden header mode */
+.home-header.header-hidden {
+    display: none !important;
+}
+
 /* Search */
 .search-container {
     max-width: 500px;
@@ -585,14 +695,10 @@ body.layout-locked .section-controls {
 /* --- Tab Bar --- */
 .tab-bar {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
-    overflow-x: auto;
     padding: 0.5rem 0 1rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
 }
-
-.tab-bar::-webkit-scrollbar { display: none; }
 
 .tab-pill {
     flex-shrink: 0;

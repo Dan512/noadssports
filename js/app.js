@@ -550,15 +550,22 @@ function getTeamBadge(team) {
 
 function renderDashboard() {
     const teams = loadFollowedTeams();
+    const header = document.querySelector('.home-header');
+    const headerSettings = document.getElementById('header-settings');
     if (teams.length === 0) {
         dashboard.hidden = true;
         addTeamFab.hidden = true;
         emptyState.hidden = false;
         tabBar.hidden = true;
+        if (header) header.classList.remove('compact');
+        if (headerSettings) headerSettings.hidden = true;
     } else {
         emptyState.hidden = true;
         dashboard.hidden = false;
         addTeamFab.hidden = false;
+        if (header) header.classList.add('compact');
+        if (headerSettings) headerSettings.hidden = false;
+        applySettings();
         renderTabBar();
         renderTeamCards();
         fetchAllTeamData(teams);
@@ -1333,6 +1340,96 @@ function handleVisibilityChange() {
         headlinesInterval = setInterval(loadHeadlines, 600000);
     }
 }
+
+// --- Settings ----------------------------------------------------------------
+
+function getSettingsBool(key) {
+    const v = localStorage.getItem('setting_' + key);
+    return v === null ? true : v === 'true';
+}
+
+function setSettingBool(key, val) {
+    localStorage.setItem('setting_' + key, val);
+}
+
+function applySettings() {
+    const header = document.querySelector('.home-header');
+    const supportBtn = document.getElementById('donate-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+    const restoreBtn = document.getElementById('restore-defaults');
+
+    // Show/hide header
+    if (header) {
+        if (getSettingsBool('showHeader')) {
+            header.classList.remove('header-hidden');
+        } else {
+            header.classList.add('header-hidden');
+        }
+    }
+
+    // Show/hide support button
+    if (supportBtn) {
+        supportBtn.style.display = getSettingsBool('showSupportBtn') ? '' : 'none';
+    }
+
+    // Show/hide theme toggle + restore defaults
+    if (themeToggle) {
+        themeToggle.style.display = getSettingsBool('showThemeToggle') ? '' : 'none';
+    }
+    if (restoreBtn) {
+        restoreBtn.style.display = getSettingsBool('showThemeToggle') ? '' : 'none';
+    }
+
+    // Sync checkbox states
+    document.querySelectorAll('#settings-popover input[data-setting]').forEach(cb => {
+        cb.checked = getSettingsBool(cb.dataset.setting);
+    });
+}
+
+(function initSettings() {
+    const toggle = document.getElementById('settings-toggle');
+    const popover = document.getElementById('settings-popover');
+    const headerSettings = document.getElementById('header-settings');
+    if (!toggle || !popover) return;
+
+    // Toggle popover
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        popover.hidden = !popover.hidden;
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!popover.hidden && !popover.contains(e.target) && e.target !== toggle) {
+            popover.hidden = true;
+        }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !popover.hidden) popover.hidden = true;
+    });
+
+    // Checkbox changes
+    popover.querySelectorAll('input[data-setting]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            setSettingBool(cb.dataset.setting, cb.checked);
+            applySettings();
+        });
+    });
+
+    // Restore defaults
+    document.getElementById('settings-revert').addEventListener('click', () => {
+        ['showHeader', 'showSupportBtn', 'showThemeToggle'].forEach(k => {
+            localStorage.removeItem('setting_' + k);
+        });
+        localStorage.removeItem('sectionPrefs');
+        applySettings();
+        popover.hidden = true;
+    });
+
+    applySettings();
+})();
 
 // --- Init Dashboard ----------------------------------------------------------
 
