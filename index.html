@@ -111,8 +111,7 @@
     <button id="settings-toggle" class="fixed-btn settings-fixed-btn" title="Settings" hidden>⚙️</button>
     <div id="settings-popover" class="settings-popover" hidden>
         <div class="settings-language">
-            <label>Language</label>
-            <select id="language-select" class="language-select"></select>
+            <button id="language-btn" class="settings-language-btn" type="button">Language</button>
         </div>
         <label><input type="checkbox" data-setting="showHeader" checked> Show header</label>
         <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
@@ -120,6 +119,11 @@
         <label><input type="checkbox" data-setting="showAllNews" checked> Show news from all sports</label>
         <label><input type="checkbox" data-setting="showFeedbackBtn" checked> Show feedback button</label>
         <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
+    </div>
+    <!-- Language popover -->
+    <div id="language-popover" class="language-popover" hidden>
+        <h3>Language</h3>
+        <div id="language-list" class="language-list"></div>
     </div>
     <!-- Feedback button (between settings and theme toggle) -->
     <button id="feedback-toggle" class="fixed-btn feedback-fixed-btn" title="Send feedback" hidden>💬</button>

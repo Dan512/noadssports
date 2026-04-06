@@ -1689,17 +1689,56 @@ function applySettings() {
         popover.hidden = true;
     });
 
-    // Populate language dropdown
-    const langSelect = document.getElementById('language-select');
-    if (langSelect) {
-        Object.entries(LANGUAGE_NAMES).forEach(([code, name]) => {
-            const opt = document.createElement('option');
-            opt.value = code;
-            opt.textContent = name;
-            if (code === getCurrentLang()) opt.selected = true;
-            langSelect.appendChild(opt);
+    // Language popover
+    const langBtn = document.getElementById('language-btn');
+    const langPopover = document.getElementById('language-popover');
+    const langList = document.getElementById('language-list');
+    if (langBtn && langPopover && langList) {
+        // Set button text to current language
+        const curLang = getCurrentLang();
+        langBtn.textContent = t('language') + ': ' + (LANGUAGE_NAMES[curLang] || 'English');
+
+        // Build radio list with flags
+        langList.innerHTML = Object.entries(LANGUAGE_NAMES).map(([code, name]) => {
+            const checked = code === curLang ? 'checked' : '';
+            let flagHtml;
+            if (code === 'en') {
+                flagHtml = `<span class="lang-flags"><img src="/img/flags/en.png" alt="US"><img src="/img/flags/gb.png" alt="UK"></span>`;
+            } else {
+                flagHtml = `<img class="lang-flag" src="/img/flags/${code}.png" alt="">`;
+            }
+            return `<label class="language-option">
+                <input type="radio" name="language" value="${code}" ${checked}>
+                ${flagHtml}
+                <span class="lang-name">${name}</span>
+            </label>`;
+        }).join('');
+
+        // Open language popover from settings
+        langBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popover.hidden = true;
+            langPopover.hidden = !langPopover.hidden;
         });
-        langSelect.addEventListener('change', () => setLanguage(langSelect.value));
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!langPopover.hidden && !langPopover.contains(e.target) && e.target !== langBtn) {
+                langPopover.hidden = true;
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !langPopover.hidden) langPopover.hidden = true;
+        });
+
+        // Radio change
+        langList.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) setLanguage(radio.value);
+            });
+        });
     }
 
     // Translate settings popover labels
@@ -1724,9 +1763,7 @@ function applySettings() {
     const revertBtn = document.getElementById('settings-revert');
     if (revertBtn) revertBtn.textContent = t('restoreDefaults');
 
-    // Translate language label
-    const langLabel = popover.querySelector('.settings-language > label');
-    if (langLabel) langLabel.textContent = t('language');
+    // Language button text is set during language popover init above
 
     applySettings();
 })();
