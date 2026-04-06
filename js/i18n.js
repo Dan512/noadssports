@@ -527,14 +527,14 @@ const TRANSLATIONS = {
 };
 
 const LANGUAGE_NAMES = {
-  en: 'English',
-  es: 'Espa\u00f1ol',
-  fr: 'Fran\u00e7ais',
-  de: 'Deutsch',
-  it: 'Italiano',
-  ja: '\u65e5\u672c\u8a9e',
-  ko: '\ud55c\uad6d\uc5b4',
-  zh: '\u4e2d\u6587',
+  en: '\ud83c\uddfa\ud83c\uddf8\ud83c\uddec\ud83c\udde7 English',
+  es: '\ud83c\uddea\ud83c\uddf8 Espa\u00f1ol',
+  fr: '\ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais',
+  de: '\ud83c\udde9\ud83c\uddea Deutsch',
+  it: '\ud83c\uddee\ud83c\uddf9 Italiano',
+  ja: '\ud83c\uddef\ud83c\uddf5 \u65e5\u672c\u8a9e',
+  ko: '\ud83c\uddf0\ud83c\uddf7 \ud55c\uad6d\uc5b4',
+  zh: '\ud83c\udde8\ud83c\uddf3 \u4e2d\u6587',
 };
 
 function getCurrentLang() {
