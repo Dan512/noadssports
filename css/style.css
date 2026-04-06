@@ -1773,138 +1773,111 @@ body.layout-locked .section-controls {
 /* Responsive */
 /* --- Where to Watch --- */
 
-.where-to-watch-card {
-    position: relative;
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: var(--card-shadow);
-    margin-top: 1rem;
+/* Where to Watch — per-game popup */
+.wtw-link {
+    font-size: 0.75rem;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 0.1rem;
+    display: inline-block;
 }
 
-.wtw-dismiss {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.75rem;
+.wtw-link:hover {
+    text-decoration: underline;
+}
+
+.wtw-popup {
+    position: fixed;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    width: 300px;
+    max-width: calc(100vw - 2rem);
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    z-index: 2001;
+}
+
+.wtw-popup[hidden] {
+    display: none;
+}
+
+.wtw-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.wtw-popup-header h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.wtw-popup-close {
     background: none;
     border: none;
     font-size: 1.2rem;
     cursor: pointer;
     color: var(--text-muted);
-    padding: 0.25rem;
+    padding: 0;
     line-height: 1;
-    opacity: 0;
-    transition: opacity 0.2s, color 0.2s;
 }
 
-.where-to-watch-card:hover .wtw-dismiss {
-    opacity: 0.5;
-}
-
-.wtw-dismiss:hover {
-    opacity: 1 !important;
-    color: var(--loss);
-}
-
-.where-to-watch-card h3 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
+.wtw-popup-close:hover {
+    color: var(--text);
 }
 
 .wtw-disclosure {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     font-style: italic;
-    line-height: 1.4;
-    margin-bottom: 1rem;
-}
-
-.wtw-services {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
 }
 
 .wtw-service {
-    background: var(--bg);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.wtw-service:last-child {
+    border-bottom: none;
+}
+
+.wtw-service-info {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.1rem;
 }
 
 .wtw-service-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text);
 }
 
 .wtw-service-price {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.wtw-service-desc {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    line-height: 1.3;
-}
-
-.wtw-service-sports {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    margin-top: 0.25rem;
-}
-
-.wtw-sport-tag {
     font-size: 0.7rem;
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    background: var(--border-light);
     color: var(--text-muted);
-}
-
-.wtw-sport-tag.matched {
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
-    color: var(--accent);
-    font-weight: 600;
 }
 
 .wtw-service-link {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--accent);
     text-decoration: none;
-    margin-top: auto;
-    padding-top: 0.25rem;
+    white-space: nowrap;
 }
 
 .wtw-service-link:hover {
     text-decoration: underline;
-}
-
-.wtw-restore {
-    display: block;
-    margin: 0.75rem auto;
-    padding: 0.4rem 0.8rem;
-    background: var(--card-bg);
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-}
-
-.wtw-restore:hover {
-    background: var(--btn-hover-bg);
-    color: var(--text);
 }
 
 @media (max-width: 600px) {
@@ -1947,11 +1920,4 @@ body.layout-locked .section-controls {
         opacity: 0.6;
     }
 
-    .wtw-services {
-        grid-template-columns: 1fr;
-    }
-
-    .wtw-dismiss {
-        opacity: 0.5;
-    }
 }

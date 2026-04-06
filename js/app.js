@@ -634,8 +634,6 @@ function renderDashboard() {
         applySettings();
         renderTabBar();
         renderTeamCards();
-        renderWhereToWatch();
-        renderWtwRestore();
         renderHeadlinesRestore();
         fetchAllTeamData(teams);
     }
@@ -838,6 +836,15 @@ function renderTeamCards() {
     });
 }
 
+// Where to Watch — delegated click handler on team cards
+teamCardsContainer.addEventListener('click', (e) => {
+    const wtwLink = e.target.closest('.wtw-link');
+    if (wtwLink) {
+        e.stopPropagation();
+        openWhereToWatch(wtwLink.dataset.sport, wtwLink);
+    }
+});
+
 // In-memory cache for team data (avoids re-fetching on tab switch)
 const teamDataCache = new Map(); // teamKey -> { data, timestamp, hasLiveGame }
 const CACHE_TTL_LIVE = 120000;     // 2 min for teams with a live game
@@ -1007,6 +1014,13 @@ function renderTeamCardData(cardEl, team, data) {
         // TV channel (if available)
         if (nextEvent.strChannel) {
             html += `<p class="team-card-channel">📺 ${sanitizeText(nextEvent.strChannel)}</p>`;
+        }
+        // Where to watch link
+        if (getSettingsBool('showWhereToWatch')) {
+            const sportTag = LEAGUE_TO_SPORT_TAG[team.league] || LEAGUE_TO_SPORT_TAG[team.sport] || '';
+            if (sportTag && STREAMING_SERVICES.some(svc => svc.sports.includes(sportTag))) {
+                html += `<span class="wtw-link" data-sport="${sanitizeAttr(sportTag)}">📺 ${t('whereToWatch')}</span>`;
+            }
         }
     } else {
         html += `<p class="team-card-next text-muted">${t('noUpcoming')}</p>`;
@@ -1520,152 +1534,81 @@ document.getElementById('headlines-dismiss')?.addEventListener('click', hideHead
 
 // --- Where to Watch ----------------------------------------------------------
 
-// Map BROWSE_LEAGUES names to STREAMING_SERVICES sport tags
+// --- Where to Watch (per-game popup) -----------------------------------------
+
 const LEAGUE_TO_SPORT_TAG = {
-    'NFL': 'NFL',
-    'NBA': 'NBA',
-    'MLB': 'MLB',
-    'NHL': 'NHL',
-    'WNBA': 'WNBA',
-    'NWSL': 'NWSL',
-    'MLS': 'MLS',
-    'Liga MX': 'Liga MX',
-    'English Premier League': 'EPL',
-    'La Liga': 'La Liga',
-    'Serie A': 'Serie A',
-    'Bundesliga': 'Bundesliga',
-    'Champions League': 'Champions League',
-    'NCAA Football': 'NCAA',
-    'NCAA Basketball (M)': 'NCAA',
-    'NCAA Basketball (W)': 'NCAA',
+    'NFL': 'NFL', 'NBA': 'NBA', 'MLB': 'MLB', 'NHL': 'NHL',
+    'WNBA': 'WNBA', 'NWSL': 'NWSL', 'MLS': 'MLS', 'Liga MX': 'Liga MX',
+    'English Premier League': 'EPL', 'EPL': 'EPL',
+    'Spanish La Liga': 'La Liga', 'La Liga': 'La Liga',
+    'Italian Serie A': 'Serie A', 'Serie A': 'Serie A',
+    'German Bundesliga': 'Bundesliga', 'Bundesliga': 'Bundesliga',
+    'Champions League': 'Champions League', 'UEFA Champions League': 'Champions League',
+    'NCAA Football': 'NCAA', 'NCAA Basketball (M)': 'NCAA', 'NCAA Basketball (W)': 'NCAA',
+    'American Football': 'NFL', 'Basketball': 'NBA', 'Baseball': 'MLB', 'Ice Hockey': 'NHL',
+    'Soccer': 'MLS',
 };
 
-function isWtwHidden() {
-    return localStorage.getItem('hideWhereToWatch') === 'true';
-}
+function openWhereToWatch(sportTag, anchorEl) {
+    if (!getSettingsBool('showWhereToWatch')) return;
 
-function hideWhereToWatch() {
-    localStorage.setItem('hideWhereToWatch', 'true');
-    const card = document.getElementById('where-to-watch');
-    if (card) card.hidden = true;
-    renderWtwRestore();
-}
+    const popup = document.getElementById('wtw-popup');
+    const container = document.getElementById('wtw-popup-services');
+    if (!popup || !container) return;
 
-function showWhereToWatch() {
-    localStorage.removeItem('hideWhereToWatch');
-    renderWhereToWatch();
-    renderWtwRestore();
-}
+    // Filter services that carry this sport
+    const relevant = STREAMING_SERVICES.filter(svc => svc.sports.includes(sportTag));
 
-function renderWtwRestore() {
-    let restoreLink = document.getElementById('wtw-restore');
-    if (isWtwHidden() && getSettingsBool('showWhereToWatch')) {
-        if (!restoreLink) {
-            restoreLink = document.createElement('button');
-            restoreLink.id = 'wtw-restore';
-            restoreLink.className = 'wtw-restore';
-            restoreLink.textContent = t('whereToWatch');
-            restoreLink.addEventListener('click', () => {
-                showWhereToWatch();
-            });
-            const dashboard = document.getElementById('dashboard');
-            // Insert before headlines
-            const headlines = document.getElementById('dashboard-headlines');
-            if (headlines) {
-                dashboard.insertBefore(restoreLink, headlines);
-            } else {
-                dashboard.appendChild(restoreLink);
-            }
-        }
-        restoreLink.hidden = false;
+    if (relevant.length === 0) {
+        container.innerHTML = `<p class="text-muted" style="font-size:0.8rem;">No streaming info available for this sport.</p>`;
     } else {
-        if (restoreLink) restoreLink.hidden = true;
-    }
-}
-
-function renderWhereToWatch() {
-    const card = document.getElementById('where-to-watch');
-    if (!card) return;
-
-    // Check setting
-    if (!getSettingsBool('showWhereToWatch')) {
-        card.hidden = true;
-        return;
+        container.innerHTML = relevant.map(svc =>
+            `<div class="wtw-service">
+                <div class="wtw-service-info">
+                    <span class="wtw-service-name">${sanitizeText(svc.name)}</span>
+                    <span class="wtw-service-price">${sanitizeText(svc.price)}</span>
+                </div>
+                <a class="wtw-service-link" href="${sanitizeAttr(svc.url)}" target="_blank" rel="noopener">${t('learnMore')}</a>
+            </div>`
+        ).join('');
     }
 
-    // Check if user dismissed
-    if (isWtwHidden()) {
-        card.hidden = true;
-        return;
-    }
-
-    // Get user's followed leagues
-    const teams = loadFollowedTeams();
-    if (teams.length === 0) {
-        card.hidden = true;
-        return;
-    }
-
-    const userSportTags = new Set();
-    teams.forEach(team => {
-        // Match from BROWSE_LEAGUES by league name
-        const bl = BROWSE_LEAGUES.find(lg => lg.name === team.league || lg.tsdbName === team.league);
-        if (bl && LEAGUE_TO_SPORT_TAG[bl.name]) {
-            userSportTags.add(LEAGUE_TO_SPORT_TAG[bl.name]);
-        }
-        // Also try direct league name match
-        if (LEAGUE_TO_SPORT_TAG[team.league]) {
-            userSportTags.add(LEAGUE_TO_SPORT_TAG[team.league]);
-        }
-    });
-
-    if (userSportTags.size === 0) {
-        card.hidden = true;
-        return;
-    }
-
-    // Filter and sort services by relevance
-    const scored = STREAMING_SERVICES
-        .map(svc => {
-            const matchCount = svc.sports.filter(s => userSportTags.has(s)).length;
-            return { svc, matchCount };
-        })
-        .filter(item => item.matchCount > 0)
-        .sort((a, b) => b.matchCount - a.matchCount);
-
-    if (scored.length === 0) {
-        card.hidden = true;
-        return;
-    }
-
-    // Render
-    const container = document.getElementById('wtw-services');
-    container.innerHTML = scored.map(({ svc }) => {
-        const sportTags = svc.sports.map(s => {
-            const matched = userSportTags.has(s) ? ' matched' : '';
-            return `<span class="wtw-sport-tag${matched}">${sanitizeText(s)}</span>`;
-        }).join('');
-
-        return `<div class="wtw-service">
-            <span class="wtw-service-name">${sanitizeText(svc.name)}</span>
-            <span class="wtw-service-price">${sanitizeText(svc.price)}</span>
-            <span class="wtw-service-desc">${sanitizeText(svc.description)}</span>
-            <div class="wtw-service-sports">${sportTags}</div>
-            <a class="wtw-service-link" href="${sanitizeAttr(svc.url)}" target="_blank" rel="noopener">${t('learnMore')}</a>
-        </div>`;
-    }).join('');
-
-    // Translate card heading and disclosure
-    const heading = card.querySelector('h3');
+    // Translate
+    const heading = popup.querySelector('h4');
     if (heading) heading.textContent = t('whereToWatch');
-    const disclosure = card.querySelector('.wtw-disclosure');
+    const disclosure = popup.querySelector('.wtw-disclosure');
     if (disclosure) disclosure.textContent = t('whereToWatchDisclosure');
 
-    card.hidden = false;
+    // Position near the clicked link
+    popup.hidden = false;
+    const rect = anchorEl.getBoundingClientRect();
+    const popupWidth = 300;
+    let left = rect.left;
+    let top = rect.bottom + 6;
+    // Keep on screen
+    if (left + popupWidth > window.innerWidth - 16) left = window.innerWidth - popupWidth - 16;
+    if (left < 16) left = 16;
+    if (top + 300 > window.innerHeight) top = rect.top - 306;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
 }
 
-// Dismiss button
-document.getElementById('wtw-dismiss')?.addEventListener('click', hideWhereToWatch);
+// Close popup
+document.getElementById('wtw-popup-close')?.addEventListener('click', () => {
+    document.getElementById('wtw-popup').hidden = true;
+});
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('wtw-popup');
+    if (popup && !popup.hidden && !popup.contains(e.target) && !e.target.classList.contains('wtw-link')) {
+        popup.hidden = true;
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const popup = document.getElementById('wtw-popup');
+        if (popup) popup.hidden = true;
+    }
+});
 
 async function loadHeadlines() {
     // Hide/show dashboard headlines based on per-tab preference
@@ -1865,12 +1808,6 @@ function applySettings() {
         feedbackBtn.style.left = showTheme ? '' : '4.5rem';
     }
 
-    // Show/hide Where to Watch
-    if (typeof renderWhereToWatch === 'function') {
-        renderWhereToWatch();
-        renderWtwRestore();
-    }
-
     // Sync checkbox states
     document.querySelectorAll('#settings-popover input[data-setting]').forEach(cb => {
         cb.checked = getSettingsBool(cb.dataset.setting);
@@ -1907,8 +1844,7 @@ function applySettings() {
             applySettings();
             if (cb.dataset.setting === 'showAllNews') loadHeadlines();
             if (cb.dataset.setting === 'showWhereToWatch') {
-                renderWhereToWatch();
-                renderWtwRestore();
+                renderDashboard(); // Re-render to show/hide WTW links on cards
             }
         });
     });
@@ -1919,7 +1855,6 @@ function applySettings() {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
-        localStorage.removeItem('hideWhereToWatch');
         applySettings();
         popover.hidden = true;
     });

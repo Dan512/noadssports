@@ -25,11 +25,14 @@
         <!-- Dashboard container (shown when user has teams) -->
         <div id="dashboard" class="dashboard" hidden>
             <div id="team-cards" class="team-cards"></div>
-            <div id="where-to-watch" class="where-to-watch-card" hidden>
-                <button id="wtw-dismiss" class="wtw-dismiss" title="Hide">&times;</button>
-                <h3>Where to Watch</h3>
-                <p class="wtw-disclosure">These are affiliate links. If you sign up, we may earn a small commission at no extra cost to you. This helps keep the site ad-free.</p>
-                <div id="wtw-services" class="wtw-services"></div>
+            <!-- Where to Watch popup (shared, positioned by JS) -->
+            <div id="wtw-popup" class="wtw-popup" hidden>
+                <div class="wtw-popup-header">
+                    <h4>Where to Watch</h4>
+                    <button id="wtw-popup-close" class="wtw-popup-close">&times;</button>
+                </div>
+                <p class="wtw-disclosure">Affiliate links — we may earn a small commission at no extra cost to you.</p>
+                <div id="wtw-popup-services"></div>
             </div>
             <div id="dashboard-headlines" class="dashboard-headlines">
                 <button id="headlines-dismiss" class="headlines-dismiss" title="Hide headlines">&times;</button>
