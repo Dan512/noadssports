@@ -576,11 +576,10 @@ body.layout-locked .section-controls {
 }
 
 .privacy-link-fixed {
-    position: fixed;
-    bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+    position: static;
+    display: block;
+    text-align: center;
+    margin: 2rem auto 1rem;
 }
 
 .bottom-spacer {
