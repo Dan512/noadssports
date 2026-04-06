@@ -576,10 +576,13 @@ let tabEditMode = false;
 
 function renderTabBar() {
     const tabs = loadTabs();
-    if (tabs.length < 2) {
+    const headerHidden = !getSettingsBool('showHeader');
+
+    if (tabs.length < 2 && !headerHidden) {
         tabBar.hidden = true;
         return;
     }
+    // Show tab bar if 2+ tabs OR if header is hidden (gear lives here)
     tabBar.hidden = false;
     const activeTab = getActiveTab();
 
@@ -1358,13 +1361,20 @@ function applySettings() {
     const themeToggle = document.getElementById('theme-toggle');
     const restoreBtn = document.getElementById('restore-defaults');
 
-    // Show/hide header
-    if (header) {
+    // Show/hide header — move settings gear to tab bar when hidden
+    const headerSettings = document.getElementById('header-settings');
+    if (header && headerSettings) {
         if (getSettingsBool('showHeader')) {
             header.classList.remove('header-hidden');
+            // Move settings back into header
+            header.appendChild(headerSettings);
         } else {
             header.classList.add('header-hidden');
+            // Move settings into tab bar
+            const tabBarEl = document.getElementById('tab-bar');
+            if (tabBarEl) tabBarEl.appendChild(headerSettings);
         }
+        headerSettings.hidden = false;
     }
 
     // Show/hide support button
