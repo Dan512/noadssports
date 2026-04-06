@@ -820,6 +820,51 @@ body.layout-locked .section-controls {
 .headlines-box .headline-link:last-child { border-bottom: none; }
 .headlines-box .headline-link:hover { text-decoration: underline; }
 
+/* Dashboard headlines card */
+.dashboard-headlines {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    margin-top: 1rem;
+}
+
+.dashboard-headlines h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.headline-item {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.headline-item:last-child {
+    border-bottom: none;
+}
+
+.headline-item a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.headline-item a:hover {
+    color: var(--accent);
+}
+
+.headline-source {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.1rem;
+}
+
 .text-muted {
     color: var(--text-muted);
     font-size: 0.9rem;

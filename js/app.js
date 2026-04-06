@@ -750,8 +750,7 @@ const teamDataCache = new Map(); // teamKey -> { data, timestamp }
 const TEAM_CACHE_TTL = 120000; // 2 minutes
 
 function fetchAllTeamData(teams, forceRefresh) {
-    const tsdbTeams = teams.filter(t => t.source === 'tsdb');
-    for (const team of tsdbTeams) {
+    for (const team of teams) {
         const teamKey = `${team.source}:${team.id}`;
         const cardData = document.getElementById(`card-data-${teamKey}`);
         if (!cardData) continue;
@@ -765,24 +764,102 @@ function fetchAllTeamData(teams, forceRefresh) {
 
         cardData.innerHTML = '<p class="team-card-loading">Loading...</p>';
 
-        const currentSeason = guessCurrentSeason();
-
-        Promise.allSettled([
-            api.getTeamNextEvents(team.id),
-            api.getTeamLastEvents(team.id),
-            team.leagueId ? api.getLeagueStandings(team.leagueId, currentSeason) : Promise.resolve(null)
-        ]).then(([nextRes, lastRes, standingsRes]) => {
-            const data = {
-                nextEvents: nextRes.status === 'fulfilled' ? (nextRes.value?.events || []) : [],
-                lastEvents: lastRes.status === 'fulfilled' ? (lastRes.value?.results || []) : [],
-                standings: standingsRes.status === 'fulfilled' && standingsRes.value ? (standingsRes.value?.table || []) : []
-            };
-            teamDataCache.set(teamKey, { data, timestamp: Date.now() });
-            renderTeamCardData(cardData, team, data);
-        }).catch(() => {
-            cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
-        });
+        if (team.source === 'tsdb') {
+            fetchTsdbTeamData(team, teamKey, cardData);
+        } else if (team.source === 'ncaa') {
+            fetchNcaaTeamData(team, teamKey, cardData);
+        }
     }
+}
+
+function fetchTsdbTeamData(team, teamKey, cardData) {
+    const currentSeason = guessCurrentSeason();
+    Promise.allSettled([
+        api.getTeamNextEvents(team.id),
+        api.getTeamLastEvents(team.id),
+        team.leagueId ? api.getLeagueStandings(team.leagueId, currentSeason) : Promise.resolve(null)
+    ]).then(([nextRes, lastRes, standingsRes]) => {
+        const data = {
+            nextEvents: nextRes.status === 'fulfilled' ? (nextRes.value?.events || []) : [],
+            lastEvents: lastRes.status === 'fulfilled' ? (lastRes.value?.results || []) : [],
+            standings: standingsRes.status === 'fulfilled' && standingsRes.value ? (standingsRes.value?.table || []) : []
+        };
+        teamDataCache.set(teamKey, { data, timestamp: Date.now() });
+        renderTeamCardData(cardData, team, data);
+    }).catch(() => {
+        cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
+    });
+}
+
+function fetchNcaaTeamData(team, teamKey, cardData) {
+    // NCAA API: fetch scoreboard for the sport, then filter for this team
+    const sport = team.leagueId || 'football'; // football, basketball-men, basketball-women
+    const division = sport === 'football' ? 'fbs' : 'd1';
+    const proxyBase = PROXY_URL || '';
+
+    Promise.allSettled([
+        fetch(`${proxyBase}/ncaa/scoreboard/${sport}/${division}`).then(r => r.json()),
+        fetch(`${proxyBase}/ncaa/standings/${sport}/${division}`).then(r => r.json()),
+    ]).then(([scoreboardRes, standingsRes]) => {
+        const data = { nextEvents: [], lastEvents: [], standings: [] };
+        const teamSlug = team.id;
+
+        // Parse scoreboard for recent/upcoming games
+        if (scoreboardRes.status === 'fulfilled' && scoreboardRes.value?.games) {
+            for (const g of scoreboardRes.value.games) {
+                const game = g.game;
+                const homeSeo = game.home?.names?.seo || '';
+                const awaySeo = game.away?.names?.seo || '';
+                if (homeSeo === teamSlug || awaySeo === teamSlug) {
+                    const isHome = homeSeo === teamSlug;
+                    if (game.finalMessage) {
+                        // Finished game
+                        data.lastEvents.push({
+                            strHomeTeam: game.home?.names?.short || '',
+                            strAwayTeam: game.away?.names?.short || '',
+                            intHomeScore: game.home?.score || '0',
+                            intAwayScore: game.away?.score || '0',
+                            idHomeTeam: homeSeo,
+                            idAwayTeam: awaySeo,
+                        });
+                    } else {
+                        // Upcoming or live
+                        data.nextEvents.push({
+                            strHomeTeam: game.home?.names?.short || '',
+                            strAwayTeam: game.away?.names?.short || '',
+                            idHomeTeam: homeSeo,
+                            idAwayTeam: awaySeo,
+                            dateEvent: game.startDate || '',
+                            strTimestamp: game.startTimeEpoch ? new Date(parseInt(game.startTimeEpoch) * 1000).toISOString() : '',
+                        });
+                    }
+                }
+            }
+        }
+
+        // Parse standings
+        if (standingsRes.status === 'fulfilled' && standingsRes.value?.data) {
+            for (const conf of standingsRes.value.data) {
+                for (const s of (conf.standings || [])) {
+                    const schoolSlug = (s.School || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+                    if (schoolSlug === teamSlug || s.School === team.name) {
+                        data.standings.push({
+                            strTeam: s.School,
+                            intWin: s['Overall W'],
+                            intLoss: s['Overall L'],
+                            conference: conf.conference,
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+
+        teamDataCache.set(teamKey, { data, timestamp: Date.now() });
+        renderTeamCardData(cardData, team, data);
+    }).catch(() => {
+        cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
+    });
 }
 
 function guessCurrentSeason() {
@@ -1286,28 +1363,36 @@ confirmAddTeamBtn.addEventListener('click', () => {
 // --- Headlines (Task 11) ----------------------------------------------------
 
 async function loadHeadlines() {
-    const box = document.getElementById('headlines-box');
-    if (!box) return;
+    // Load into both empty-state box and dashboard box
+    const boxes = [
+        document.getElementById('headlines-box'),
+        document.getElementById('dashboard-headlines'),
+    ].filter(Boolean);
+
+    if (boxes.length === 0) return;
 
     if (!PROXY_URL) {
-        box.innerHTML = '<p class="text-muted">News headlines available when proxy is configured.</p>';
+        boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">News headlines available when proxy is configured.</p>'; });
         return;
     }
 
     try {
         const data = await api.getNews();
-        const articles = data.articles || data.items || [];
-        if (articles.length === 0) {
-            box.innerHTML = '<p class="text-muted">No headlines available.</p>';
+        const headlines = data.headlines || data.articles || data.items || [];
+        if (headlines.length === 0) {
+            boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">No headlines available.</p>'; });
             return;
         }
-        box.innerHTML = articles.slice(0, 10).map(a => {
-            const title = sanitizeText(a.title || a.headline || 'Untitled');
-            const url = a.url || a.link || '#';
-            return `<a class="headline-link" href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>`;
+        const html = '<h3>Headlines</h3>' + headlines.slice(0, 8).map(h => {
+            const title = sanitizeText(h.title || 'Untitled');
+            // Strip CDATA wrapping from links
+            let url = (h.link || h.url || '#').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim();
+            const source = h.source ? `<span class="headline-source">${sanitizeText(h.source)}</span>` : '';
+            return `<div class="headline-item"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${source}</div>`;
         }).join('');
+        boxes.forEach(box => { box.innerHTML = html; });
     } catch (err) {
-        box.innerHTML = '<p class="text-muted">Could not load headlines.</p>';
+        boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">Could not load headlines.</p>'; });
     }
 }
 
@@ -1376,14 +1461,24 @@ function applySettings() {
         }
     }
 
-    // Show/hide support button
+    // Show/hide support button — slide FAB down when hidden
+    const addFab = document.getElementById('add-team-fab');
+    const showSupport = getSettingsBool('showSupportBtn');
     if (supportBtn) {
-        supportBtn.style.display = getSettingsBool('showSupportBtn') ? '' : 'none';
+        supportBtn.style.display = showSupport ? '' : 'none';
+    }
+    if (addFab) {
+        addFab.style.bottom = showSupport ? '' : '1.5rem';
     }
 
-    // Show/hide theme toggle
+    // Show/hide theme toggle — slide settings over when hidden
+    const settingsBtn = document.getElementById('settings-toggle');
+    const showTheme = getSettingsBool('showThemeToggle');
     if (themeToggle) {
-        themeToggle.style.display = getSettingsBool('showThemeToggle') ? '' : 'none';
+        themeToggle.style.display = showTheme ? '' : 'none';
+    }
+    if (settingsBtn) {
+        settingsBtn.style.left = showTheme ? '' : '1.5rem';
     }
 
     // Sync checkbox states
