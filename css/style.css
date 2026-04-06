@@ -163,6 +163,42 @@ body {
     accent-color: var(--accent);
 }
 
+/* Language selector in settings */
+.settings-language {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.3rem 0.25rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 0.5rem;
+}
+
+.settings-language label {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 600;
+    padding: 0;
+    margin: 0;
+}
+
+.language-select {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.language-select:focus {
+    border-color: var(--accent);
+}
+
 .settings-revert-btn {
     margin-top: 0.5rem;
     padding: 0.4rem 0.75rem;

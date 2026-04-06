@@ -109,6 +109,10 @@
     <!-- Settings button (bottom left, next to theme toggle) -->
     <button id="settings-toggle" class="fixed-btn settings-fixed-btn" title="Settings" hidden>⚙️</button>
     <div id="settings-popover" class="settings-popover" hidden>
+        <div class="settings-language">
+            <label>Language</label>
+            <select id="language-select" class="language-select"></select>
+        </div>
         <label><input type="checkbox" data-setting="showHeader" checked> Show header</label>
         <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
         <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
@@ -122,6 +126,7 @@
         Support this site
     </a>
 
+    <script src="js/i18n.js"></script>
     <script src="js/teams.js"></script>
     <script src="js/app.js"></script>
 </body>

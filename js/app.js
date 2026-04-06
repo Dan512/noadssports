@@ -584,7 +584,7 @@ function renderHeadlinesRestore() {
             restoreLink = document.createElement('button');
             restoreLink.id = 'headlines-restore';
             restoreLink.className = 'headlines-restore';
-            restoreLink.textContent = 'Show Headlines';
+            restoreLink.textContent = t('showHeadlines');
             restoreLink.addEventListener('click', () => {
                 showHeadlinesForTab();
                 renderHeadlinesRestore();
@@ -617,7 +617,7 @@ function renderTabBar() {
                 <input type="text" class="tab-rename-input" value="${sanitizeAttr(tab.label)}" ${isMain ? 'disabled' : ''}>
                 ${isMain ? '' : `<button class="tab-delete-btn" data-tab-id="${sanitizeAttr(tab.id)}" title="Delete tab">&times;</button>`}
             </div>`;
-        }).join('') + '<button class="tab-edit-btn done" id="tab-done-btn">Done</button>';
+        }).join('') + `<button class="tab-edit-btn done" id="tab-done-btn">${t('done')}</button>`;
 
         // Done button
         document.getElementById('tab-done-btn').addEventListener('click', () => {
@@ -640,7 +640,7 @@ function renderTabBar() {
             btn.addEventListener('click', () => {
                 const tabId = btn.dataset.tabId;
                 const tabLabel = tabs.find(t => t.id === tabId)?.label || tabId;
-                if (confirm(`Delete the "${tabLabel}" tab?`)) {
+                if (confirm(t('deleteTabConfirm').replace('{name}', tabLabel))) {
                     removeTab(tabId);
                     if (getActiveTab() === tabId) setActiveTab('main');
                     const remaining = loadTabs();
@@ -736,7 +736,7 @@ function renderTeamCards() {
     }
 
     if (visibleTeams.length === 0) {
-        teamCardsContainer.innerHTML = '<p class="text-muted" style="padding:2rem;text-align:center;">No teams in this tab. Add a team or switch tabs.</p>';
+        teamCardsContainer.innerHTML = `<p class="text-muted" style="padding:2rem;text-align:center;">${t('noTeamsInTab')}</p>`;
         return;
     }
 
@@ -755,7 +755,7 @@ function renderTeamCards() {
                     </div>
                 </div>
                 <div class="team-card-data" id="card-data-${sanitizeAttr(teamKey)}">
-                    <p class="team-card-placeholder">Loading...</p>
+                    <p class="team-card-placeholder">${t('loading')}</p>
                 </div>
             </div>
         `;
@@ -794,7 +794,7 @@ function fetchAllTeamData(teams, forceRefresh) {
             }
         }
 
-        cardData.innerHTML = '<p class="team-card-loading">Loading...</p>';
+        cardData.innerHTML = `<p class="team-card-loading">${t('loading')}</p>`;
 
         if (team.source === 'tsdb') {
             fetchTsdbTeamData(team, teamKey, cardData);
@@ -823,7 +823,7 @@ function fetchTsdbTeamData(team, teamKey, cardData) {
         teamDataCache.set(teamKey, { data, timestamp: Date.now(), hasLiveGame });
         renderTeamCardData(cardData, team, data);
     }).catch(() => {
-        cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
+        cardData.innerHTML = `<p class="team-card-error">${t('failedToLoad')}</p>`;
     });
 }
 
@@ -895,7 +895,7 @@ function fetchNcaaTeamData(team, teamKey, cardData) {
         teamDataCache.set(teamKey, { data, timestamp: Date.now(), hasLiveGame });
         renderTeamCardData(cardData, team, data);
     }).catch(() => {
-        cardData.innerHTML = '<p class="team-card-error">Failed to load data</p>';
+        cardData.innerHTML = `<p class="team-card-error">${t('failedToLoad')}</p>`;
     });
 }
 
@@ -915,22 +915,23 @@ function renderTeamCardData(cardEl, team, data) {
     if (nextEvent) {
         const isHome = nextEvent.idHomeTeam === team.id || nextEvent.strHomeTeam === team.name;
         const opponent = isHome ? nextEvent.strAwayTeam : nextEvent.strHomeTeam;
-        const prefix = isHome ? 'vs' : '@';
+        const prefix = isHome ? t('vs') : t('at');
         let dateStr = '';
         if (nextEvent.strTimestamp || nextEvent.dateEvent) {
             try {
                 const d = new Date(nextEvent.strTimestamp || nextEvent.dateEvent);
                 if (!isNaN(d)) {
-                    dateStr = ' \u00b7 ' + d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                    const locale = getCurrentLang();
+                    dateStr = ' \u00b7 ' + d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
                     if (nextEvent.strTimestamp) {
-                        dateStr += ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                        dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
                     }
                 }
             } catch (e) { /* ignore date parse errors */ }
         }
-        html += `<p class="team-card-next"><strong>Next:</strong> ${prefix} ${sanitizeText(opponent)}${dateStr}</p>`;
+        html += `<p class="team-card-next"><strong>${t('next')}</strong> ${prefix} ${sanitizeText(opponent)}${dateStr}</p>`;
     } else {
-        html += '<p class="team-card-next text-muted">No upcoming games</p>';
+        html += `<p class="team-card-next text-muted">${t('noUpcoming')}</p>`;
     }
 
     // Last result
@@ -942,11 +943,11 @@ function renderTeamCardData(cardEl, team, data) {
         const won = isHome ? homeScore > awayScore : awayScore > homeScore;
         const draw = homeScore === awayScore;
         const colorClass = draw ? '' : (won ? 'result-win' : 'result-loss');
-        html += `<p class="team-card-last ${colorClass}"><strong>Last:</strong> ${sanitizeText(lastEvent.strHomeTeam)} ${homeScore} - ${awayScore} ${sanitizeText(lastEvent.strAwayTeam)}</p>`;
+        html += `<p class="team-card-last ${colorClass}"><strong>${t('last')}</strong> ${sanitizeText(lastEvent.strHomeTeam)} ${homeScore} - ${awayScore} ${sanitizeText(lastEvent.strAwayTeam)}</p>`;
 
         // Highlights link
         if (lastEvent.strVideo) {
-            html += `<a class="team-card-highlights" href="${sanitizeAttr(lastEvent.strVideo)}" target="_blank" rel="noopener">\u25b6 Watch highlights</a>`;
+            html += `<a class="team-card-highlights" href="${sanitizeAttr(lastEvent.strVideo)}" target="_blank" rel="noopener">\u25b6 ${t('watchHighlights')}</a>`;
         }
     }
 
@@ -963,14 +964,14 @@ function renderTeamCardData(cardEl, team, data) {
             const draws = entry.intDraw || 0;
             const pts = entry.intPoints;
             let standingsStr = rank ? `#${rank} in ` : '';
-            standingsStr += `${sanitizeText(league)} \u00b7 ${wins}W-${losses}L`;
-            if (parseInt(draws)) standingsStr += `-${draws}D`;
-            if (pts !== undefined && pts !== null) standingsStr += ` \u00b7 ${pts} Pts`;
+            standingsStr += `${sanitizeText(league)} \u00b7 ${wins}${t('win')}-${losses}${t('loss')}`;
+            if (parseInt(draws)) standingsStr += `-${draws}${t('draw')}`;
+            if (pts !== undefined && pts !== null) standingsStr += ` \u00b7 ${pts} ${t('pts')}`;
             html += `<p class="team-card-standings">${standingsStr}</p>`;
         }
     }
 
-    cardEl.innerHTML = html || '<p class="text-muted">No data available</p>';
+    cardEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
 }
 
 // --- Empty state league quick buttons ----------------------------------------
@@ -1051,10 +1052,10 @@ modalSearchInput.addEventListener('input', () => {
     if (localResults.length > 0) {
         renderSearchResults(localResults);
     } else if (query.length < 4) {
-        modalSearchResults.innerHTML = '<div class="search-hint">Keep typing to search online...</div>';
+        modalSearchResults.innerHTML = `<div class="search-hint">${t('keepTyping')}</div>`;
     } else {
         // Fall back to API search
-        modalSearchResults.innerHTML = '<div class="search-loading">Searching online...</div>';
+        modalSearchResults.innerHTML = `<div class="search-loading">${t('searchingOnline')}</div>`;
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => searchTeams(query), 800);
     }
@@ -1079,7 +1080,7 @@ function searchLocalTeams(query) {
 // Render search results (used by both local and API search)
 function renderSearchResults(teams) {
     if (teams.length === 0) {
-        modalSearchResults.innerHTML = '<div class="search-no-results">No teams found. Try a different search.</div>';
+        modalSearchResults.innerHTML = `<div class="search-no-results">${t('noTeamsFound')}</div>`;
         return;
     }
 
@@ -1122,7 +1123,7 @@ async function searchTeams(query) {
         }));
         renderSearchResults(teams);
     } catch (err) {
-        modalSearchResults.innerHTML = '<div class="search-no-results">Search error. Please try again.</div>';
+        modalSearchResults.innerHTML = `<div class="search-no-results">${t('searchError')}</div>`;
     }
 }
 
@@ -1145,7 +1146,7 @@ function populateBrowseLeagues() {
 
 async function browseLeagueTeams(leagueId, source, leagueName, sport) {
     browseTeamList.hidden = false;
-    browseTeamList.innerHTML = '<div class="browse-loading">Loading teams...</div>';
+    browseTeamList.innerHTML = `<div class="browse-loading">${t('loadingTeams')}</div>`;
     teamConfig.hidden = true;
 
     if (source === 'ncaa') {
@@ -1180,7 +1181,7 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
                 return;
             }
         }
-        browseTeamList.innerHTML = '<div class="browse-message">Use the search bar above to find your team.</div>';
+        browseTeamList.innerHTML = `<div class="browse-message">${t('useSearchBar')}</div>`;
         return;
     }
 
@@ -1189,7 +1190,7 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
         const teams = (data.teams || []).sort((a, b) => a.strTeam.localeCompare(b.strTeam));
 
         if (teams.length === 0) {
-            browseTeamList.innerHTML = '<div class="browse-message">No teams found for this league.</div>';
+            browseTeamList.innerHTML = `<div class="browse-message">${t('noTeamsForLeague')}</div>`;
             return;
         }
 
@@ -1221,7 +1222,7 @@ async function browseLeagueTeams(leagueId, source, leagueName, sport) {
             });
         });
     } catch (err) {
-        browseTeamList.innerHTML = '<div class="browse-message">Error loading teams. Please try again.</div>';
+        browseTeamList.innerHTML = `<div class="browse-message">${t('errorLoadingTeams')}</div>`;
     }
 }
 
@@ -1260,7 +1261,7 @@ function showTeamConfig(teamData) {
     let tabHtml = '';
 
     // Main (always checked, disabled)
-    tabHtml += `<label><input type="checkbox" value="main" checked disabled> Main</label>`;
+    tabHtml += `<label><input type="checkbox" value="main" checked disabled> ${t('main')}</label>`;
 
     // League tab suggestion
     if (leagueTabName) {
@@ -1268,7 +1269,7 @@ function showTeamConfig(teamData) {
             const leagueTab = tabs.find(t => t.label === leagueTabName);
             tabHtml += `<label><input type="checkbox" value="${sanitizeAttr(leagueTab.id)}" checked> ${sanitizeText(leagueTabName)}</label>`;
         } else {
-            tabHtml += `<label><input type="checkbox" value="new:${sanitizeAttr(leagueTabName)}" checked> ${sanitizeText(leagueTabName)} (new tab)</label>`;
+            tabHtml += `<label><input type="checkbox" value="new:${sanitizeAttr(leagueTabName)}" checked> ${sanitizeText(leagueTabName)} (${t('newTab')})</label>`;
         }
     }
 
@@ -1278,7 +1279,7 @@ function showTeamConfig(teamData) {
             const tTab = tabs.find(t => t.label === teamTabName);
             tabHtml += `<label><input type="checkbox" value="${sanitizeAttr(tTab.id)}"> ${sanitizeText(teamTabName)}</label>`;
         } else {
-            tabHtml += `<label><input type="checkbox" value="new:${sanitizeAttr(teamTabName)}"> ${sanitizeText(teamTabName)} (new tab)</label>`;
+            tabHtml += `<label><input type="checkbox" value="new:${sanitizeAttr(teamTabName)}"> ${sanitizeText(teamTabName)} (${t('newTab')})</label>`;
         }
     }
 
@@ -1291,7 +1292,7 @@ function showTeamConfig(teamData) {
     }
 
     // New custom tab option
-    tabHtml += `<label><input type="checkbox" value="custom-new" id="custom-tab-check"> <input type="text" class="new-tab-input" id="custom-tab-name" placeholder="New custom tab..."></label>`;
+    tabHtml += `<label><input type="checkbox" value="custom-new" id="custom-tab-check"> <input type="text" class="new-tab-input" id="custom-tab-name" placeholder="${t('newCustomTab')}"></label>`;
 
     tabCheckboxes.innerHTML = tabHtml;
 
@@ -1307,11 +1308,11 @@ function showTeamConfig(teamData) {
 
     // Notification checkboxes
     notificationCheckboxes.innerHTML = `
-        <label><input type="checkbox" id="notif-all" value="all"> All</label>
-        <label><input type="checkbox" id="notif-game-start" value="gameStart" checked> Game start</label>
-        <label><input type="checkbox" id="notif-final" value="finalScore" checked> Final score</label>
-        <label><input type="checkbox" id="notif-close" value="closeGame"> Close game</label>
-        <label><input type="checkbox" id="notif-news" value="teamNews"> Team news</label>
+        <label><input type="checkbox" id="notif-all" value="all"> ${t('notifAll')}</label>
+        <label><input type="checkbox" id="notif-game-start" value="gameStart" checked> ${t('notifGameStart')}</label>
+        <label><input type="checkbox" id="notif-final" value="finalScore" checked> ${t('notifFinalScore')}</label>
+        <label><input type="checkbox" id="notif-close" value="closeGame"> ${t('notifCloseGame')}</label>
+        <label><input type="checkbox" id="notif-news" value="teamNews"> ${t('notifTeamNews')}</label>
     `;
 
     // "All" master toggle logic
@@ -1454,7 +1455,7 @@ async function loadHeadlines() {
     if (boxes.length === 0) return;
 
     if (!PROXY_URL) {
-        boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">News headlines available when proxy is configured.</p>'; });
+        boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('headlinesProxyNeeded')}</p>`; });
         return;
     }
 
@@ -1462,7 +1463,7 @@ async function loadHeadlines() {
         const data = await api.getNews();
         const headlines = data.headlines || data.articles || data.items || [];
         if (headlines.length === 0) {
-            boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">No headlines available.</p>'; });
+            boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('noHeadlines')}</p>`; });
             return;
         }
 
@@ -1528,11 +1529,11 @@ async function loadHeadlines() {
         }
 
         if (filtered.length === 0) {
-            boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">No matching headlines.</p>'; });
+            boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('noMatchingHeadlines')}</p>`; });
             return;
         }
 
-        const html = '<h3>Headlines</h3>' + filtered.slice(0, 10).map(h => {
+        const html = `<h3>${t('headlines')}</h3>` + filtered.slice(0, 10).map(h => {
             const title = sanitizeText(h.title || 'Untitled');
             let url = (h.link || h.url || '#').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').trim();
             const source = h.source ? `<span class="headline-source">${sanitizeText(h.source)}</span>` : '';
@@ -1542,7 +1543,7 @@ async function loadHeadlines() {
         }).join('');
         boxes.forEach(box => { box.innerHTML = html; });
     } catch (err) {
-        boxes.forEach(box => { box.innerHTML = '<h3>Headlines</h3><p class="text-muted">Could not load headlines.</p>'; });
+        boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('couldNotLoadHeadlines')}</p>`; });
     }
 }
 
@@ -1679,7 +1680,99 @@ function applySettings() {
         popover.hidden = true;
     });
 
+    // Populate language dropdown
+    const langSelect = document.getElementById('language-select');
+    if (langSelect) {
+        Object.entries(LANGUAGE_NAMES).forEach(([code, name]) => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = name;
+            if (code === getCurrentLang()) opt.selected = true;
+            langSelect.appendChild(opt);
+        });
+        langSelect.addEventListener('change', () => setLanguage(langSelect.value));
+    }
+
+    // Translate settings popover labels
+    const settingLabels = {
+        showHeader: t('showHeader'),
+        showSupportBtn: t('showSupportBtn'),
+        showThemeToggle: t('showThemeToggle'),
+        showAllNews: t('showAllNews'),
+    };
+    popover.querySelectorAll('input[data-setting]').forEach(cb => {
+        const label = cb.parentElement;
+        if (label && settingLabels[cb.dataset.setting]) {
+            label.childNodes.forEach(node => {
+                if (node.nodeType === 3 && node.textContent.trim()) {
+                    node.textContent = ' ' + settingLabels[cb.dataset.setting];
+                }
+            });
+        }
+    });
+
+    // Translate restore defaults button
+    const revertBtn = document.getElementById('settings-revert');
+    if (revertBtn) revertBtn.textContent = t('restoreDefaults');
+
+    // Translate language label
+    const langLabel = popover.querySelector('.settings-language > label');
+    if (langLabel) langLabel.textContent = t('language');
+
     applySettings();
+})();
+
+// --- Translate Static HTML Elements ------------------------------------------
+
+(function translateStaticHTML() {
+    // Header
+    const h1 = document.querySelector('.home-header h1');
+    if (h1) h1.textContent = t('siteName');
+    const tagline = document.querySelector('.tagline');
+    if (tagline) tagline.textContent = t('tagline');
+
+    // Empty state
+    const addTeamBtnEl = document.getElementById('add-team-btn');
+    if (addTeamBtnEl) addTeamBtnEl.textContent = t('addTeam');
+    const quickBrowseH3 = document.querySelector('.league-quick-picks h3');
+    if (quickBrowseH3) quickBrowseH3.textContent = t('quickBrowse');
+
+    // Headlines boxes
+    const headlinesBoxH2 = document.querySelector('#headlines-box h2');
+    if (headlinesBoxH2) headlinesBoxH2.textContent = t('headlines');
+    const dashHeadlinesH3 = document.querySelector('#dashboard-headlines h3');
+    if (dashHeadlinesH3) dashHeadlinesH3.textContent = t('headlines');
+    const dashHeadlinesP = document.querySelector('#dashboard-headlines .text-muted');
+    if (dashHeadlinesP) dashHeadlinesP.textContent = t('loadingHeadlines');
+
+    // Modal
+    const modalTitle = document.querySelector('.modal-title');
+    if (modalTitle) modalTitle.textContent = t('addTeamTitle');
+    const modalInput = document.getElementById('modal-search-input');
+    if (modalInput) modalInput.placeholder = t('searchPlaceholder');
+    const browseH3 = document.querySelector('#modal-browse h3');
+    if (browseH3) browseH3.textContent = t('browseByLeague');
+    const addToTabsH3 = document.querySelector('#team-config h3:nth-of-type(1)');
+    if (addToTabsH3) addToTabsH3.textContent = t('addToTabs');
+    // Team config h3 elements
+    const configH3s = document.querySelectorAll('#team-config h3');
+    if (configH3s[0]) configH3s[0].textContent = t('addToTabs');
+    if (configH3s[1]) configH3s[1].textContent = t('notifications');
+    const confirmBtn = document.getElementById('confirm-add-team');
+    if (confirmBtn) confirmBtn.textContent = t('confirmAddTeam');
+
+    // Privacy
+    const privacyToggle = document.getElementById('privacy-toggle-home');
+    if (privacyToggle) privacyToggle.textContent = t('privacyCookies');
+    const privacyTitle = document.querySelector('#privacy-panel strong');
+    if (privacyTitle) privacyTitle.textContent = t('privacyTitle');
+
+    // Support button
+    const donateBtn = document.getElementById('donate-btn');
+    if (donateBtn) donateBtn.textContent = t('supportSite');
+
+    // Set html lang attribute
+    document.documentElement.lang = getCurrentLang();
 })();
 
 // --- Init Dashboard ----------------------------------------------------------
