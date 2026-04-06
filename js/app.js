@@ -555,6 +555,7 @@ function renderDashboard() {
     const teams = loadFollowedTeams();
     const header = document.querySelector('.home-header');
     const settingsToggle = document.getElementById('settings-toggle');
+    const feedbackToggle = document.getElementById('feedback-toggle');
     if (teams.length === 0) {
         dashboard.hidden = true;
         addTeamFab.hidden = true;
@@ -562,12 +563,14 @@ function renderDashboard() {
         tabBar.hidden = true;
         if (header) header.classList.remove('compact');
         if (settingsToggle) settingsToggle.hidden = true;
+        if (feedbackToggle) feedbackToggle.hidden = true;
     } else {
         emptyState.hidden = true;
         dashboard.hidden = false;
         addTeamFab.hidden = false;
         if (header) header.classList.add('compact');
         if (settingsToggle) settingsToggle.hidden = false;
+        if (feedbackToggle) feedbackToggle.hidden = false;
         applySettings();
         renderTabBar();
         renderTeamCards();
@@ -1631,6 +1634,12 @@ function applySettings() {
     if (settingsBtn) {
         settingsBtn.style.left = showTheme ? '' : '1.5rem';
     }
+    const feedbackBtn = document.getElementById('feedback-toggle');
+    const showFeedback = getSettingsBool('showFeedbackBtn');
+    if (feedbackBtn) {
+        feedbackBtn.style.display = showFeedback ? '' : 'none';
+        feedbackBtn.style.left = showTheme ? '' : '4.5rem';
+    }
 
     // Sync checkbox states
     document.querySelectorAll('#settings-popover input[data-setting]').forEach(cb => {
@@ -1672,7 +1681,7 @@ function applySettings() {
 
     // Restore defaults
     document.getElementById('settings-revert').addEventListener('click', () => {
-        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews'].forEach(k => {
+        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews', 'showFeedbackBtn'].forEach(k => {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
@@ -1720,6 +1729,82 @@ function applySettings() {
     if (langLabel) langLabel.textContent = t('language');
 
     applySettings();
+})();
+
+// --- Feedback ----------------------------------------------------------------
+
+(function initFeedback() {
+    const feedbackToggle = document.getElementById('feedback-toggle');
+    const feedbackPopover = document.getElementById('feedback-popover');
+    const feedbackMessage = document.getElementById('feedback-message');
+    const feedbackType = document.getElementById('feedback-type');
+    const feedbackSend = document.getElementById('feedback-send');
+    const feedbackStatus = document.getElementById('feedback-status');
+    if (!feedbackToggle || !feedbackPopover) return;
+
+    // Toggle popover
+    feedbackToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        feedbackPopover.hidden = !feedbackPopover.hidden;
+        if (!feedbackPopover.hidden) {
+            feedbackMessage.value = '';
+            feedbackStatus.textContent = '';
+            setTimeout(() => feedbackMessage.focus(), 100);
+        }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!feedbackPopover.hidden && !feedbackPopover.contains(e.target) && e.target !== feedbackToggle) {
+            feedbackPopover.hidden = true;
+        }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !feedbackPopover.hidden) feedbackPopover.hidden = true;
+    });
+
+    // Send feedback
+    feedbackSend.addEventListener('click', async () => {
+        const message = feedbackMessage.value.trim();
+        if (!message || message.length < 3) {
+            feedbackStatus.textContent = 'Please enter a message.';
+            feedbackStatus.style.color = 'var(--loss)';
+            return;
+        }
+
+        feedbackSend.disabled = true;
+        feedbackStatus.textContent = 'Sending...';
+        feedbackStatus.style.color = 'var(--text-muted)';
+
+        try {
+            const res = await fetch(`${PROXY_URL}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: feedbackType.value,
+                    message,
+                    page: window.location.href,
+                    lang: getCurrentLang(),
+                }),
+            });
+
+            if (res.ok) {
+                feedbackStatus.textContent = 'Thanks for your feedback!';
+                feedbackStatus.style.color = 'var(--win)';
+                feedbackMessage.value = '';
+                setTimeout(() => { feedbackPopover.hidden = true; }, 1500);
+            } else {
+                feedbackStatus.textContent = 'Failed to send. Try again.';
+                feedbackStatus.style.color = 'var(--loss)';
+            }
+        } catch {
+            feedbackStatus.textContent = 'Failed to send. Try again.';
+            feedbackStatus.style.color = 'var(--loss)';
+        }
+        feedbackSend.disabled = false;
+    });
 })();
 
 // --- Translate Static HTML Elements ------------------------------------------

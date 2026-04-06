@@ -117,7 +117,23 @@
         <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
         <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
         <label><input type="checkbox" data-setting="showAllNews" checked> Show news from all sports</label>
+        <label><input type="checkbox" data-setting="showFeedbackBtn" checked> Show feedback button</label>
         <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
+    </div>
+    <!-- Feedback button (between settings and theme toggle) -->
+    <button id="feedback-toggle" class="fixed-btn feedback-fixed-btn" title="Send feedback" hidden>💬</button>
+    <div id="feedback-popover" class="feedback-popover" hidden>
+        <h3>Send Feedback</h3>
+        <select id="feedback-type" class="feedback-type-select">
+            <option value="bug">Bug report</option>
+            <option value="feature">Feature request</option>
+            <option value="general">General feedback</option>
+        </select>
+        <textarea id="feedback-message" class="feedback-textarea" placeholder="Tell us what's on your mind..." maxlength="2000" rows="4"></textarea>
+        <div class="feedback-actions">
+            <button id="feedback-send" class="btn-primary feedback-send-btn">Send</button>
+            <span id="feedback-status" class="feedback-status"></span>
+        </div>
     </div>
     <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
 
