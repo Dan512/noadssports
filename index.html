@@ -17,15 +17,6 @@
         <header class="home-header">
             <h1>NoAdsSports</h1>
             <p class="tagline">Scores without the clutter.</p>
-            <div id="header-settings" class="header-settings" hidden>
-                <button id="settings-toggle" class="settings-btn" title="Settings">&#9881;</button>
-                <div id="settings-popover" class="settings-popover" hidden>
-                    <label><input type="checkbox" data-setting="showHeader" checked> Show header</label>
-                    <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
-                    <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
-                    <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
-                </div>
-            </div>
         </header>
 
         <!-- Tab bar (hidden when fewer than 2 tabs) -->
@@ -109,7 +100,14 @@
     </div>
 
     <!-- Theme toggle + restore defaults -->
-    <button id="restore-defaults" aria-label="Restore default layout" title="Restore default layout">↺</button>
+    <!-- Settings button (bottom left, next to theme toggle) -->
+    <button id="settings-toggle" class="fixed-btn settings-fixed-btn" title="Settings" hidden>⚙️</button>
+    <div id="settings-popover" class="settings-popover" hidden>
+        <label><input type="checkbox" data-setting="showHeader" checked> Show header</label>
+        <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
+        <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
+        <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
+    </div>
     <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
 
     <!-- Floating donate button -->

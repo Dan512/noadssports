@@ -551,20 +551,20 @@ function getTeamBadge(team) {
 function renderDashboard() {
     const teams = loadFollowedTeams();
     const header = document.querySelector('.home-header');
-    const headerSettings = document.getElementById('header-settings');
+    const settingsToggle = document.getElementById('settings-toggle');
     if (teams.length === 0) {
         dashboard.hidden = true;
         addTeamFab.hidden = true;
         emptyState.hidden = false;
         tabBar.hidden = true;
         if (header) header.classList.remove('compact');
-        if (headerSettings) headerSettings.hidden = true;
+        if (settingsToggle) settingsToggle.hidden = true;
     } else {
         emptyState.hidden = true;
         dashboard.hidden = false;
         addTeamFab.hidden = false;
         if (header) header.classList.add('compact');
-        if (headerSettings) headerSettings.hidden = false;
+        if (settingsToggle) settingsToggle.hidden = false;
         applySettings();
         renderTabBar();
         renderTeamCards();
@@ -576,21 +576,13 @@ let tabEditMode = false;
 
 function renderTabBar() {
     const tabs = loadTabs();
-    const headerHidden = !getSettingsBool('showHeader');
-
-    if (tabs.length < 2 && !headerHidden) {
+    if (tabs.length < 2) {
         tabBar.hidden = true;
         return;
     }
     // Show tab bar if 2+ tabs OR if header is hidden (gear lives here)
     tabBar.hidden = false;
     const activeTab = getActiveTab();
-
-    // Detach settings gear before rebuilding tab bar HTML
-    const headerSettings = document.getElementById('header-settings');
-    if (headerSettings && headerSettings.parentNode === tabBar) {
-        headerSettings.remove();
-    }
 
     if (tabEditMode) {
         tabBar.innerHTML = tabs.map(tab => {
@@ -701,19 +693,6 @@ function renderTabBar() {
         });
     }
 
-    // Re-append settings gear if it was detached
-    if (headerSettings) {
-        if (!getSettingsBool('showHeader')) {
-            tabBar.appendChild(headerSettings);
-        } else {
-            // Make sure it's back in the header
-            const header = document.querySelector('.home-header');
-            if (header && headerSettings.parentNode !== header) {
-                header.appendChild(headerSettings);
-            }
-        }
-        headerSettings.hidden = false;
-    }
 }
 
 function renderTeamCards() {
@@ -1387,22 +1366,14 @@ function applySettings() {
     const header = document.querySelector('.home-header');
     const supportBtn = document.getElementById('donate-btn');
     const themeToggle = document.getElementById('theme-toggle');
-    const restoreBtn = document.getElementById('restore-defaults');
 
-    // Show/hide header — move settings gear to tab bar when hidden
-    const headerSettings = document.getElementById('header-settings');
-    if (header && headerSettings) {
+    // Show/hide header
+    if (header) {
         if (getSettingsBool('showHeader')) {
             header.classList.remove('header-hidden');
-            // Move settings back into header
-            header.appendChild(headerSettings);
         } else {
             header.classList.add('header-hidden');
-            // Move settings into tab bar
-            const tabBarEl = document.getElementById('tab-bar');
-            if (tabBarEl) tabBarEl.appendChild(headerSettings);
         }
-        headerSettings.hidden = false;
     }
 
     // Show/hide support button
@@ -1410,12 +1381,9 @@ function applySettings() {
         supportBtn.style.display = getSettingsBool('showSupportBtn') ? '' : 'none';
     }
 
-    // Show/hide theme toggle + restore defaults
+    // Show/hide theme toggle
     if (themeToggle) {
         themeToggle.style.display = getSettingsBool('showThemeToggle') ? '' : 'none';
-    }
-    if (restoreBtn) {
-        restoreBtn.style.display = getSettingsBool('showThemeToggle') ? '' : 'none';
     }
 
     // Sync checkbox states
@@ -1427,7 +1395,6 @@ function applySettings() {
 (function initSettings() {
     const toggle = document.getElementById('settings-toggle');
     const popover = document.getElementById('settings-popover');
-    const headerSettings = document.getElementById('header-settings');
     if (!toggle || !popover) return;
 
     // Toggle popover
@@ -1506,17 +1473,6 @@ function applyLayoutLock() {
         setTheme(current === 'dark' ? 'light' : 'dark');
     });
 })();
-
-// --- Restore Defaults --------------------------------------------------------
-
-document.getElementById('restore-defaults').addEventListener('click', () => {
-    localStorage.removeItem('sectionPrefs');
-    localStorage.removeItem('followedTeams');
-    localStorage.removeItem('tabs');
-    localStorage.removeItem('notificationPrefs');
-    localStorage.removeItem('activeTab');
-    renderDashboard();
-});
 
 // --- Privacy Panel -----------------------------------------------------------
 

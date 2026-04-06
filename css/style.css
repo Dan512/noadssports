@@ -96,37 +96,34 @@ body {
     margin-top: 0;
 }
 
-/* Header settings */
-.header-settings {
-    position: relative;
-    margin-left: auto;
-}
-
-.home-header.compact .header-settings {
-    align-self: center;
-}
-
-.settings-btn {
+/* Settings button (fixed, bottom left next to theme toggle) */
+.settings-fixed-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 4.5rem;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.3rem 0.6rem;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
     cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    transition: background 0.2s, color 0.2s;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    transition: background 0.2s;
 }
 
-.settings-btn:hover {
+.settings-fixed-btn:hover {
     background: var(--btn-hover-bg);
-    color: var(--text);
 }
 
 .settings-popover {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 0.25rem;
+    position: fixed;
+    bottom: 4rem;
+    left: 1.5rem;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -535,31 +532,6 @@ body.layout-locked .section-controls {
 .standings-table td {
     padding: 0.4rem 0.5rem;
     border-bottom: 1px solid var(--border-light);
-}
-
-/* Restore defaults button */
-#restore-defaults {
-    position: fixed;
-    bottom: 1.5rem;
-    left: 4.5rem;
-    background: var(--card-bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
-    transition: background 0.2s, color 0.3s;
-}
-
-#restore-defaults:hover {
-    background: var(--btn-hover-bg);
 }
 
 /* Theme toggle */
