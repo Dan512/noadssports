@@ -1490,10 +1490,20 @@ async function loadHeadlines() {
         const allFollowedNames = buildNameList(followedTeams);
         const showAllNews = getSettingsBool('showAllNews');
 
+        // Map league names to RSS sport tags for sport-level matching
+        const LEAGUE_TO_SPORT = {
+            'NFL': 'nfl', 'NBA': 'nba', 'MLB': 'mlb', 'NHL': 'nhl',
+            'American Football': 'nfl', 'Basketball': 'nba', 'Baseball': 'mlb', 'Ice Hockey': 'nhl',
+        };
+        const tabSports = new Set(tabTeams.map(t => LEAGUE_TO_SPORT[t.league] || LEAGUE_TO_SPORT[t.sport] || '').filter(Boolean));
+        const allFollowedSports = new Set(followedTeams.map(t => LEAGUE_TO_SPORT[t.league] || LEAGUE_TO_SPORT[t.sport] || '').filter(Boolean));
+
         const tagged = headlines.map(h => {
             const titleLower = (h.title || '').toLowerCase();
-            const isTabTeam = tabNames.some(name => titleLower.includes(name));
-            const isFollowed = allFollowedNames.some(name => titleLower.includes(name));
+            const hSport = h.sport || 'general';
+            // Match by team name in title OR by sport tag from RSS feed
+            const isTabTeam = tabNames.some(name => titleLower.includes(name)) || (hSport !== 'general' && tabSports.has(hSport));
+            const isFollowed = allFollowedNames.some(name => titleLower.includes(name)) || (hSport !== 'general' && allFollowedSports.has(hSport));
             return { ...h, isTabTeam, isFollowed };
         });
 
