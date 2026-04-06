@@ -292,6 +292,15 @@ body {
     background: var(--border);
 }
 
+.lang-btn-flag {
+    width: 16px;
+    height: 11px;
+    object-fit: cover;
+    border-radius: 1px;
+    vertical-align: middle;
+    margin: 0 1px;
+}
+
 .language-popover {
     position: fixed;
     bottom: 4rem;

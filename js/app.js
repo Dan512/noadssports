@@ -192,7 +192,8 @@ const api = (() => {
         },
         getNews() {
             if (!PROXY_URL) return Promise.resolve({ articles: [] });
-            return fetchJSON(`${PROXY_URL}/news`);
+            const lang = getCurrentLang();
+            return fetchJSON(`${PROXY_URL}/news?lang=${lang}`);
         }
     };
 })();
@@ -1696,7 +1697,10 @@ function applySettings() {
     if (langBtn && langPopover && langList) {
         // Set button text to current language
         const curLang = getCurrentLang();
-        langBtn.textContent = t('language') + ': ' + (LANGUAGE_NAMES[curLang] || 'English');
+        const flagHtml = curLang === 'en'
+            ? '<img src="/img/flags/en.png" class="lang-btn-flag"><img src="/img/flags/gb.png" class="lang-btn-flag">'
+            : `<img src="/img/flags/${curLang}.png" class="lang-btn-flag">`;
+        langBtn.innerHTML = `${t('language')}: ${flagHtml} ${LANGUAGE_NAMES[curLang] || 'English'}`;
 
         // Build radio list with flags
         langList.innerHTML = Object.entries(LANGUAGE_NAMES).map(([code, name]) => {
