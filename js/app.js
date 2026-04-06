@@ -522,6 +522,65 @@ const BROWSE_LEAGUES = [
     { id: 'basketball-women', name: 'NCAA Basketball (W)', source: 'ncaa', sport: 'Basketball' },
 ];
 
+const STREAMING_SERVICES = [
+    {
+        name: 'ESPN+',
+        price: '$11.99/mo',
+        sports: ['NHL', 'MLB', 'MLS', 'NCAA', 'UFC', 'La Liga'],
+        url: 'https://www.espn.com/espnplus/',  // TODO: replace with affiliate link
+        description: 'NHL, MLB, MLS, college sports, La Liga, UFC',
+    },
+    {
+        name: 'Sling TV',
+        price: 'From $40/mo',
+        sports: ['NFL', 'NBA', 'MLB', 'NHL', 'NCAA', 'EPL'],
+        url: 'https://www.sling.com/',  // TODO: replace with affiliate link
+        description: 'ESPN, TNT, Fox Sports, NFL Network, NBC Sports',
+    },
+    {
+        name: 'YouTube TV',
+        price: '$72.99/mo',
+        sports: ['NFL', 'NBA', 'MLB', 'NHL', 'NCAA', 'MLS'],
+        url: 'https://tv.youtube.com/',  // TODO: replace with affiliate link
+        description: 'All major networks + ESPN, Fox, CBS, NBC, TNT',
+    },
+    {
+        name: 'Fubo',
+        price: 'From $79.99/mo',
+        sports: ['NFL', 'NBA', 'MLB', 'NHL', 'MLS', 'EPL', 'La Liga', 'Serie A', 'Liga MX'],
+        url: 'https://www.fubo.tv/',  // TODO: replace with affiliate link
+        description: 'Best for soccer. All major US sports + international leagues',
+    },
+    {
+        name: 'Peacock',
+        price: '$7.99/mo',
+        sports: ['NFL', 'EPL', 'NASCAR', 'Olympics'],
+        url: 'https://www.peacocktv.com/',  // TODO: replace with affiliate link
+        description: 'Sunday Night Football, Premier League, NASCAR',
+    },
+    {
+        name: 'Paramount+',
+        price: '$7.99/mo',
+        sports: ['NFL', 'Champions League', 'Serie A', 'NWSL'],
+        url: 'https://www.paramountplus.com/',  // TODO: replace with affiliate link
+        description: 'Champions League, CBS NFL games, Serie A, NWSL',
+    },
+    {
+        name: 'Apple TV+',
+        price: '$9.99/mo',
+        sports: ['MLB', 'MLS'],
+        url: 'https://tv.apple.com/',  // TODO: replace with affiliate link
+        description: 'Friday Night Baseball, MLS Season Pass',
+    },
+    {
+        name: 'Amazon Prime Video',
+        price: '$14.99/mo',
+        sports: ['NFL', 'NBA'],
+        url: 'https://www.amazon.com/prime/',  // TODO: replace with affiliate link
+        description: 'Thursday Night Football, select NBA games',
+    },
+];
+
 // --- Sanitization Helpers ----------------------------------------------------
 
 function sanitizeText(str) {
@@ -575,6 +634,8 @@ function renderDashboard() {
         applySettings();
         renderTabBar();
         renderTeamCards();
+        renderWhereToWatch();
+        renderWtwRestore();
         renderHeadlinesRestore();
         fetchAllTeamData(teams);
     }
@@ -923,17 +984,30 @@ function renderTeamCardData(cardEl, team, data) {
         let dateStr = '';
         if (nextEvent.strTimestamp || nextEvent.dateEvent) {
             try {
-                const d = new Date(nextEvent.strTimestamp || nextEvent.dateEvent);
+                // strTimestamp from TheSportsDB is UTC but missing the Z suffix
+                let raw = nextEvent.strTimestamp || nextEvent.dateEvent;
+                if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                    raw += '+00:00';
+                }
+                const d = new Date(raw);
                 if (!isNaN(d)) {
                     const locale = getCurrentLang();
                     dateStr = ' \u00b7 ' + d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
                     if (nextEvent.strTimestamp) {
-                        dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+                        dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
                     }
                 }
             } catch (e) { /* ignore date parse errors */ }
         }
         html += `<p class="team-card-next"><strong>${t('next')}</strong> ${prefix} ${sanitizeText(opponent)}${dateStr}</p>`;
+        // Venue
+        if (nextEvent.strVenue) {
+            html += `<p class="team-card-venue">${sanitizeText(nextEvent.strVenue)}</p>`;
+        }
+        // TV channel (if available)
+        if (nextEvent.strChannel) {
+            html += `<p class="team-card-channel">📺 ${sanitizeText(nextEvent.strChannel)}</p>`;
+        }
     } else {
         html += `<p class="team-card-next text-muted">${t('noUpcoming')}</p>`;
     }
@@ -1444,6 +1518,155 @@ function showHeadlinesForTab() {
 // Dismiss button
 document.getElementById('headlines-dismiss')?.addEventListener('click', hideHeadlinesForTab);
 
+// --- Where to Watch ----------------------------------------------------------
+
+// Map BROWSE_LEAGUES names to STREAMING_SERVICES sport tags
+const LEAGUE_TO_SPORT_TAG = {
+    'NFL': 'NFL',
+    'NBA': 'NBA',
+    'MLB': 'MLB',
+    'NHL': 'NHL',
+    'WNBA': 'WNBA',
+    'NWSL': 'NWSL',
+    'MLS': 'MLS',
+    'Liga MX': 'Liga MX',
+    'English Premier League': 'EPL',
+    'La Liga': 'La Liga',
+    'Serie A': 'Serie A',
+    'Bundesliga': 'Bundesliga',
+    'Champions League': 'Champions League',
+    'NCAA Football': 'NCAA',
+    'NCAA Basketball (M)': 'NCAA',
+    'NCAA Basketball (W)': 'NCAA',
+};
+
+function isWtwHidden() {
+    return localStorage.getItem('hideWhereToWatch') === 'true';
+}
+
+function hideWhereToWatch() {
+    localStorage.setItem('hideWhereToWatch', 'true');
+    const card = document.getElementById('where-to-watch');
+    if (card) card.hidden = true;
+    renderWtwRestore();
+}
+
+function showWhereToWatch() {
+    localStorage.removeItem('hideWhereToWatch');
+    renderWhereToWatch();
+    renderWtwRestore();
+}
+
+function renderWtwRestore() {
+    let restoreLink = document.getElementById('wtw-restore');
+    if (isWtwHidden() && getSettingsBool('showWhereToWatch')) {
+        if (!restoreLink) {
+            restoreLink = document.createElement('button');
+            restoreLink.id = 'wtw-restore';
+            restoreLink.className = 'wtw-restore';
+            restoreLink.textContent = t('whereToWatch');
+            restoreLink.addEventListener('click', () => {
+                showWhereToWatch();
+            });
+            const dashboard = document.getElementById('dashboard');
+            // Insert before headlines
+            const headlines = document.getElementById('dashboard-headlines');
+            if (headlines) {
+                dashboard.insertBefore(restoreLink, headlines);
+            } else {
+                dashboard.appendChild(restoreLink);
+            }
+        }
+        restoreLink.hidden = false;
+    } else {
+        if (restoreLink) restoreLink.hidden = true;
+    }
+}
+
+function renderWhereToWatch() {
+    const card = document.getElementById('where-to-watch');
+    if (!card) return;
+
+    // Check setting
+    if (!getSettingsBool('showWhereToWatch')) {
+        card.hidden = true;
+        return;
+    }
+
+    // Check if user dismissed
+    if (isWtwHidden()) {
+        card.hidden = true;
+        return;
+    }
+
+    // Get user's followed leagues
+    const teams = loadFollowedTeams();
+    if (teams.length === 0) {
+        card.hidden = true;
+        return;
+    }
+
+    const userSportTags = new Set();
+    teams.forEach(team => {
+        // Match from BROWSE_LEAGUES by league name
+        const bl = BROWSE_LEAGUES.find(lg => lg.name === team.league || lg.tsdbName === team.league);
+        if (bl && LEAGUE_TO_SPORT_TAG[bl.name]) {
+            userSportTags.add(LEAGUE_TO_SPORT_TAG[bl.name]);
+        }
+        // Also try direct league name match
+        if (LEAGUE_TO_SPORT_TAG[team.league]) {
+            userSportTags.add(LEAGUE_TO_SPORT_TAG[team.league]);
+        }
+    });
+
+    if (userSportTags.size === 0) {
+        card.hidden = true;
+        return;
+    }
+
+    // Filter and sort services by relevance
+    const scored = STREAMING_SERVICES
+        .map(svc => {
+            const matchCount = svc.sports.filter(s => userSportTags.has(s)).length;
+            return { svc, matchCount };
+        })
+        .filter(item => item.matchCount > 0)
+        .sort((a, b) => b.matchCount - a.matchCount);
+
+    if (scored.length === 0) {
+        card.hidden = true;
+        return;
+    }
+
+    // Render
+    const container = document.getElementById('wtw-services');
+    container.innerHTML = scored.map(({ svc }) => {
+        const sportTags = svc.sports.map(s => {
+            const matched = userSportTags.has(s) ? ' matched' : '';
+            return `<span class="wtw-sport-tag${matched}">${sanitizeText(s)}</span>`;
+        }).join('');
+
+        return `<div class="wtw-service">
+            <span class="wtw-service-name">${sanitizeText(svc.name)}</span>
+            <span class="wtw-service-price">${sanitizeText(svc.price)}</span>
+            <span class="wtw-service-desc">${sanitizeText(svc.description)}</span>
+            <div class="wtw-service-sports">${sportTags}</div>
+            <a class="wtw-service-link" href="${sanitizeAttr(svc.url)}" target="_blank" rel="noopener">${t('learnMore')}</a>
+        </div>`;
+    }).join('');
+
+    // Translate card heading and disclosure
+    const heading = card.querySelector('h3');
+    if (heading) heading.textContent = t('whereToWatch');
+    const disclosure = card.querySelector('.wtw-disclosure');
+    if (disclosure) disclosure.textContent = t('whereToWatchDisclosure');
+
+    card.hidden = false;
+}
+
+// Dismiss button
+document.getElementById('wtw-dismiss')?.addEventListener('click', hideWhereToWatch);
+
 async function loadHeadlines() {
     // Hide/show dashboard headlines based on per-tab preference
     const dashboardBox = document.getElementById('dashboard-headlines');
@@ -1642,6 +1865,12 @@ function applySettings() {
         feedbackBtn.style.left = showTheme ? '' : '4.5rem';
     }
 
+    // Show/hide Where to Watch
+    if (typeof renderWhereToWatch === 'function') {
+        renderWhereToWatch();
+        renderWtwRestore();
+    }
+
     // Sync checkbox states
     document.querySelectorAll('#settings-popover input[data-setting]').forEach(cb => {
         cb.checked = getSettingsBool(cb.dataset.setting);
@@ -1677,15 +1906,20 @@ function applySettings() {
             setSettingBool(cb.dataset.setting, cb.checked);
             applySettings();
             if (cb.dataset.setting === 'showAllNews') loadHeadlines();
+            if (cb.dataset.setting === 'showWhereToWatch') {
+                renderWhereToWatch();
+                renderWtwRestore();
+            }
         });
     });
 
     // Restore defaults
     document.getElementById('settings-revert').addEventListener('click', () => {
-        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews', 'showFeedbackBtn'].forEach(k => {
+        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews', 'showWhereToWatch', 'showFeedbackBtn'].forEach(k => {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
+        localStorage.removeItem('hideWhereToWatch');
         applySettings();
         popover.hidden = true;
     });
@@ -1847,6 +2081,7 @@ function applySettings() {
         showSupportBtn: t('showSupportBtn'),
         showThemeToggle: t('showThemeToggle'),
         showAllNews: t('showAllNews'),
+        showWhereToWatch: t('showWhereToWatch'),
     };
     popover.querySelectorAll('input[data-setting]').forEach(cb => {
         const label = cb.parentElement;

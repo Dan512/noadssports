@@ -25,6 +25,12 @@
         <!-- Dashboard container (shown when user has teams) -->
         <div id="dashboard" class="dashboard" hidden>
             <div id="team-cards" class="team-cards"></div>
+            <div id="where-to-watch" class="where-to-watch-card" hidden>
+                <button id="wtw-dismiss" class="wtw-dismiss" title="Hide">&times;</button>
+                <h3>Where to Watch</h3>
+                <p class="wtw-disclosure">These are affiliate links. If you sign up, we may earn a small commission at no extra cost to you. This helps keep the site ad-free.</p>
+                <div id="wtw-services" class="wtw-services"></div>
+            </div>
             <div id="dashboard-headlines" class="dashboard-headlines">
                 <button id="headlines-dismiss" class="headlines-dismiss" title="Hide headlines">&times;</button>
                 <h3>Headlines</h3>
@@ -117,6 +123,7 @@
         <label><input type="checkbox" data-setting="showSupportBtn" checked> Show "Support this site" button</label>
         <label><input type="checkbox" data-setting="showThemeToggle" checked> Show dark/light mode button</label>
         <label><input type="checkbox" data-setting="showAllNews" checked> Show news from all sports</label>
+        <label><input type="checkbox" data-setting="showWhereToWatch" checked> Show "Where to Watch"</label>
         <label><input type="checkbox" data-setting="showFeedbackBtn" checked> Show feedback button</label>
         <button id="notifications-btn" class="settings-language-btn" type="button">Manage Notifications</button>
         <button id="settings-revert" class="settings-revert-btn">Restore Defaults</button>
