@@ -586,6 +586,12 @@ function renderTabBar() {
     tabBar.hidden = false;
     const activeTab = getActiveTab();
 
+    // Detach settings gear before rebuilding tab bar HTML
+    const headerSettings = document.getElementById('header-settings');
+    if (headerSettings && headerSettings.parentNode === tabBar) {
+        headerSettings.remove();
+    }
+
     if (tabEditMode) {
         tabBar.innerHTML = tabs.map(tab => {
             const isMain = tab.id === 'main';
@@ -695,13 +701,18 @@ function renderTabBar() {
         });
     }
 
-    // Re-append settings gear to tab bar if header is hidden
-    if (!getSettingsBool('showHeader')) {
-        const headerSettings = document.getElementById('header-settings');
-        if (headerSettings) {
+    // Re-append settings gear if it was detached
+    if (headerSettings) {
+        if (!getSettingsBool('showHeader')) {
             tabBar.appendChild(headerSettings);
-            headerSettings.hidden = false;
+        } else {
+            // Make sure it's back in the header
+            const header = document.querySelector('.home-header');
+            if (header && headerSettings.parentNode !== header) {
+                header.appendChild(headerSettings);
+            }
         }
+        headerSettings.hidden = false;
     }
 }
 
