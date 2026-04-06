@@ -820,6 +820,8 @@ function renderTeamCards() {
                 <div class="team-card-data" id="card-data-${sanitizeAttr(teamKey)}">
                     <p class="team-card-placeholder">${t('loading')}</p>
                 </div>
+                <div class="team-card-expanded" id="expanded-${sanitizeAttr(teamKey)}"></div>
+                <button class="team-card-collapse">${t('collapse')}</button>
             </div>
         `;
     }).join('');
@@ -842,6 +844,42 @@ teamCardsContainer.addEventListener('click', (e) => {
     if (wtwLink) {
         e.stopPropagation();
         openWhereToWatch(wtwLink.dataset.sport, wtwLink);
+    }
+});
+
+// Expand/collapse team card — delegated click handler
+teamCardsContainer.addEventListener('click', (e) => {
+    // Ignore clicks on remove button, links, wtw-link, collapse button
+    if (e.target.closest('.team-card-remove')) return;
+    if (e.target.closest('a')) return;
+    if (e.target.closest('.wtw-link')) return;
+
+    const card = e.target.closest('.team-card');
+    if (!card) return;
+
+    const isCollapseBtn = e.target.closest('.team-card-collapse');
+    const teamKey = card.dataset.teamKey;
+
+    if (card.classList.contains('expanded')) {
+        // Collapse this card
+        card.classList.remove('expanded');
+        const expandedEl = document.getElementById(`expanded-${teamKey}`);
+        if (expandedEl) expandedEl.innerHTML = '';
+    } else {
+        // Collapse any other expanded card first
+        const currentExpanded = teamCardsContainer.querySelector('.team-card.expanded');
+        if (currentExpanded) {
+            currentExpanded.classList.remove('expanded');
+            const oldKey = currentExpanded.dataset.teamKey;
+            const oldExpanded = document.getElementById(`expanded-${oldKey}`);
+            if (oldExpanded) oldExpanded.innerHTML = '';
+        }
+        // Expand this card
+        card.classList.add('expanded');
+        const team = loadFollowedTeams().find(t => `${t.source}:${t.id}` === teamKey);
+        if (team) {
+            renderExpandedTeamData(card, team, teamKey);
+        }
     }
 });
 
@@ -945,20 +983,29 @@ function fetchNcaaTeamData(team, teamKey, cardData) {
             }
         }
 
-        // Parse standings
+        // Parse standings — store entire conference for expanded view
         if (standingsRes.status === 'fulfilled' && standingsRes.value?.data) {
+            // First, find which conference the team belongs to
+            let matchedConf = null;
             for (const conf of standingsRes.value.data) {
                 for (const s of (conf.standings || [])) {
                     const schoolSlug = (s.School || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
                     if (schoolSlug === teamSlug || s.School === team.name) {
-                        data.standings.push({
-                            strTeam: s.School,
-                            intWin: s['Overall W'],
-                            intLoss: s['Overall L'],
-                            conference: conf.conference,
-                        });
+                        matchedConf = conf;
                         break;
                     }
+                }
+                if (matchedConf) break;
+            }
+            // Store all teams from that conference
+            if (matchedConf) {
+                for (const s of (matchedConf.standings || [])) {
+                    data.standings.push({
+                        strTeam: s.School,
+                        intWin: s['Overall W'],
+                        intLoss: s['Overall L'],
+                        conference: matchedConf.conference,
+                    });
                 }
             }
         }
@@ -1064,6 +1111,167 @@ function renderTeamCardData(cardEl, team, data) {
     }
 
     cardEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
+}
+
+// --- Expanded team card detail view ------------------------------------------
+
+function renderExpandedTeamData(card, team, teamKey) {
+    const expandedEl = document.getElementById(`expanded-${teamKey}`);
+    if (!expandedEl) return;
+
+    const cached = teamDataCache.get(teamKey);
+    if (!cached) {
+        expandedEl.innerHTML = `<p class="team-card-loading">${t('loading')}</p>`;
+        // Data not cached yet; wait for it to load then try again
+        const checkInterval = setInterval(() => {
+            const c = teamDataCache.get(teamKey);
+            if (c) {
+                clearInterval(checkInterval);
+                if (card.classList.contains('expanded')) {
+                    buildExpandedContent(expandedEl, team, c.data);
+                }
+            }
+        }, 500);
+        // Stop checking after 15 seconds
+        setTimeout(() => clearInterval(checkInterval), 15000);
+        return;
+    }
+
+    buildExpandedContent(expandedEl, team, cached.data);
+}
+
+function buildExpandedContent(expandedEl, team, data) {
+    let html = '';
+    const locale = getCurrentLang();
+
+    // --- Upcoming Schedule ---
+    if (data.nextEvents && data.nextEvents.length > 0) {
+        html += `<div class="expanded-section">`;
+        html += `<h4>${t('upcomingSchedule')}</h4>`;
+        html += `<div class="schedule-list">`;
+        for (const ev of data.nextEvents) {
+            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
+            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+            const prefix = isHome ? t('vs') : t('at');
+
+            let dateStr = '';
+            if (ev.strTimestamp || ev.dateEvent) {
+                try {
+                    let raw = ev.strTimestamp || ev.dateEvent;
+                    if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                        raw += '+00:00';
+                    }
+                    const d = new Date(raw);
+                    if (!isNaN(d)) {
+                        dateStr = d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
+                        if (ev.strTimestamp) {
+                            dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            const venue = ev.strVenue ? `<span class="schedule-venue">${sanitizeText(ev.strVenue)}</span>` : '';
+
+            html += `<div class="schedule-item">`;
+            html += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span> ${venue}</div>`;
+            html += `<span class="schedule-date">${dateStr}</span>`;
+            html += `</div>`;
+        }
+        html += `</div></div>`;
+    }
+
+    // --- Recent Results ---
+    if (data.lastEvents && data.lastEvents.length > 0) {
+        html += `<div class="expanded-section">`;
+        html += `<h4>${t('recentResults')}</h4>`;
+        html += `<div class="schedule-list">`;
+        for (const ev of data.lastEvents) {
+            const homeScore = parseInt(ev.intHomeScore, 10) || 0;
+            const awayScore = parseInt(ev.intAwayScore, 10) || 0;
+            const isHome = ev.idHomeTeam === team.id || ev.strHomeTeam === team.name;
+            const won = isHome ? homeScore > awayScore : awayScore > homeScore;
+            const draw = homeScore === awayScore;
+            const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
+
+            const opponent = isHome ? ev.strAwayTeam : ev.strHomeTeam;
+            const prefix = isHome ? t('vs') : t('at');
+            const score = `${homeScore} - ${awayScore}`;
+
+            let highlightLink = '';
+            if (ev.strVideo) {
+                highlightLink = ` <a class="result-highlight" href="${sanitizeAttr(ev.strVideo)}" target="_blank" rel="noopener">\u25b6 ${t('watchHighlights')}</a>`;
+            }
+
+            html += `<div class="result-item ${resultClass}">`;
+            html += `<span>${prefix} ${sanitizeText(opponent)}</span>`;
+            html += `<span><span class="result-score">${score}</span>${highlightLink}</span>`;
+            html += `</div>`;
+        }
+        html += `</div></div>`;
+    }
+
+    // --- League Standings ---
+    if (data.standings && data.standings.length > 1) {
+        html += `<div class="expanded-section">`;
+        html += `<h4>${t('standings')}</h4>`;
+        html += renderStandingsTable(data.standings, team);
+        html += `</div>`;
+    }
+
+    expandedEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
+}
+
+function renderStandingsTable(standings, team) {
+    // Detect if this is NCAA-style data (has conference field, no intRank)
+    const isNcaa = standings.length > 0 && standings[0].conference && !standings[0].intRank;
+
+    if (isNcaa) {
+        // NCAA standings — group by conference
+        let html = `<table class="standings-table">`;
+        html += `<thead><tr>`;
+        html += `<th>${t('rank')}</th><th>${t('team')}</th><th>${t('record')}</th>`;
+        html += `</tr></thead><tbody>`;
+        standings.forEach((entry, idx) => {
+            const isCurrent = entry.strTeam === team.name;
+            const record = `${entry.intWin || 0}-${entry.intLoss || 0}`;
+            html += `<tr class="${isCurrent ? 'current-team' : ''}">`;
+            html += `<td>${idx + 1}</td>`;
+            html += `<td>${sanitizeText(entry.strTeam)}</td>`;
+            html += `<td>${record}</td>`;
+            html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+        return html;
+    }
+
+    // TheSportsDB standings
+    let html = `<table class="standings-table">`;
+    html += `<thead><tr>`;
+    html += `<th>#</th><th>${t('team')}</th><th>${t('record')}</th>`;
+    const hasPoints = standings.some(s => s.intPoints !== undefined && s.intPoints !== null);
+    if (hasPoints) html += `<th>${t('points')}</th>`;
+    html += `</tr></thead><tbody>`;
+
+    for (const entry of standings) {
+        const isCurrent = entry.idTeam === team.id || entry.strTeam === team.name;
+        const rank = entry.intRank || entry.intPos || '';
+        const wins = entry.intWin || 0;
+        const losses = entry.intLoss || 0;
+        const draws = entry.intDraw || 0;
+        let record = `${wins}${t('win')}-${losses}${t('loss')}`;
+        if (parseInt(draws)) record += `-${draws}${t('draw')}`;
+
+        html += `<tr class="${isCurrent ? 'current-team' : ''}">`;
+        html += `<td>${rank}</td>`;
+        html += `<td>${sanitizeText(entry.strTeam)}</td>`;
+        html += `<td>${record}</td>`;
+        if (hasPoints) html += `<td>${entry.intPoints ?? ''}</td>`;
+        html += `</tr>`;
+    }
+
+    html += `</tbody></table>`;
+    return html;
 }
 
 // --- Empty state league quick buttons ----------------------------------------

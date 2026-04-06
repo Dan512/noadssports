@@ -1327,6 +1327,7 @@ body.layout-locked .section-controls {
     width: calc(50% - 0.5rem);
     min-width: 280px;
     transition: box-shadow 0.2s;
+    cursor: pointer;
 }
 
 .team-card:hover {
@@ -1878,6 +1879,162 @@ body.layout-locked .section-controls {
 
 .wtw-service-link:hover {
     text-decoration: underline;
+}
+
+/* Team card expanded state */
+.team-card.expanded {
+    flex: 1 1 100%;
+    max-width: 100%;
+    cursor: default;
+}
+
+.team-card-expanded {
+    display: none;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.team-card.expanded .team-card-expanded {
+    display: block;
+}
+
+/* Collapse button */
+.team-card-collapse {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    margin-top: 0.5rem;
+}
+
+.team-card.expanded .team-card-collapse {
+    display: block;
+}
+
+.team-card-collapse:hover {
+    color: var(--accent);
+}
+
+/* Expanded sections */
+.expanded-section {
+    margin-bottom: 1rem;
+}
+
+.expanded-section h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+}
+
+/* Schedule list */
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.schedule-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.schedule-item:last-child {
+    border-bottom: none;
+}
+
+.schedule-opponent {
+    font-weight: 500;
+}
+
+.schedule-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.schedule-venue {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* Results list */
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-score {
+    font-weight: 600;
+}
+
+.result-win .result-score {
+    color: var(--win);
+}
+
+.result-loss .result-score {
+    color: var(--loss);
+}
+
+.result-draw .result-score {
+    color: var(--text-muted);
+}
+
+.result-highlight {
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.result-highlight:hover {
+    text-decoration: underline;
+}
+
+/* Standings table */
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.standings-table th {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border-medium);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.standings-table td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.standings-table tr.current-team {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    font-weight: 600;
+}
+
+.standings-table tr.current-team td {
+    color: var(--accent);
 }
 
 @media (max-width: 600px) {
