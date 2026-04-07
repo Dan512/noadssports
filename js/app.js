@@ -1158,7 +1158,7 @@ function buildExpandedContent(expandedEl, team, data) {
 
     // --- ESPN Record placeholder (filled async) ---
     const espnMapping = ESPN_LEAGUE_MAP[team.leagueId];
-    if (team.espnId && espnMapping) {
+    if (espnMapping) {
         html += `<div class="expanded-section team-record" id="espn-record-${team.source}-${team.id}">
             <div class="record-loading">${t('loading')}</div>
         </div>`;
