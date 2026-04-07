@@ -611,9 +611,16 @@ function sanitizeAttr(str) {
 // --- Team Badge Helper -------------------------------------------------------
 
 function getTeamBadge(team) {
-    // Pro teams: use locally hosted badge by team ID
+    // Pro teams: try locally hosted badge first, fall back to TheSportsDB URL
     if (team.source === 'tsdb' && team.id) {
-        return `/img/teams/${encodeURIComponent(team.id)}.png`;
+        // Check if this team is in our local TEAM_LIST (we have logos for those)
+        const inLocalList = typeof TEAM_LIST !== 'undefined' && TEAM_LIST.some(t => t.id === team.id);
+        if (inLocalList) {
+            return `/img/teams/${encodeURIComponent(team.id)}.png`;
+        }
+        // Not in local list — use TheSportsDB badge URL if available
+        if (team.badge) return team.badge;
+        return `/img/teams/${encodeURIComponent(team.id)}.png`; // Try local anyway (onerror will hide)
     }
     // NCAA teams: use locally hosted PNG logos
     if (team.source === 'ncaa' && team.id) {
