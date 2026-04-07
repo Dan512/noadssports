@@ -1921,6 +1921,7 @@ body.layout-locked .section-controls {
     cursor: pointer;
     text-decoration: none;
     margin-top: 0.1rem;
+    margin-right: 1rem;
     display: inline-block;
 }
 

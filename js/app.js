@@ -1084,8 +1084,17 @@ function guessCurrentSeason(leagueId) {
 function renderTeamCardData(cardEl, team, data) {
     let html = '';
 
-    // Next game / Live game
-    const nextEvent = data.nextEvents[0];
+    // Next game / Live game — skip events that are already finished
+    const nextEvent = (data.nextEvents || []).find(ev => {
+        const s = (ev.strStatus || '').toLowerCase();
+        if (s === 'ft' || s === 'match finished') return false;
+        // Also check if the event date is in the past with no live status
+        if (ev.dateEvent && !s) {
+            const eventDate = new Date(ev.dateEvent + 'T23:59:59');
+            if (eventDate < new Date()) return false;
+        }
+        return true;
+    });
     if (nextEvent) {
         const isHome = nextEvent.idHomeTeam === team.id || nextEvent.strHomeTeam === team.name;
         const opponent = isHome ? nextEvent.strAwayTeam : nextEvent.strHomeTeam;
@@ -1151,8 +1160,13 @@ function renderTeamCardData(cardEl, team, data) {
         html += `<p class="team-card-next text-muted">${t('noUpcoming')}</p>`;
     }
 
-    // Last result
-    const lastEvent = (data.lastEvents || []).find(ev => ev.intHomeScore != null && ev.intAwayScore != null);
+    // Last result — also check "next" events that are now finished
+    const finishedNextEvents = (data.nextEvents || []).filter(ev => {
+        const s = (ev.strStatus || '').toLowerCase();
+        return (s === 'ft' || s === 'match finished') && ev.intHomeScore != null && ev.intAwayScore != null;
+    });
+    const allLastEvents = [...finishedNextEvents, ...(data.lastEvents || [])];
+    const lastEvent = allLastEvents.find(ev => ev.intHomeScore != null && ev.intAwayScore != null);
     if (lastEvent) {
         const homeScore = parseInt(lastEvent.intHomeScore, 10) || 0;
         const awayScore = parseInt(lastEvent.intAwayScore, 10) || 0;
@@ -1467,38 +1481,55 @@ function renderEspnBoxScore(boxData, homeName, awayName, league) {
     const teams = boxData.teams;
 
     // --- Team totals comparison ---
-    // Use boxscore.teams comparison stats if available
-    if (boxData.teamComparison && boxData.teamComparison.length >= 2) {
-        html += `<div class="match-stats-header"><span>${sanitizeText(boxData.teamComparison[0].abbreviation || homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(boxData.teamComparison[1].abbreviation || awayName)}</span></div>`;
+    // Use the totals from player stats (more reliable than boxscore.teams)
+    if (teams && teams.length >= 2) {
+        const team0 = teams[0];
+        const team1 = teams[1];
+        const abbr0 = team0.abbreviation || homeName;
+        const abbr1 = team1.abbreviation || awayName;
 
-        // Pick which stats to display based on league
-        const comp0 = boxData.teamComparison[0].statistics || [];
-        const comp1 = boxData.teamComparison[1].statistics || [];
+        html += `<div class="match-stats-header"><span>${sanitizeText(abbr0)}</span><span>${t('matchStats')}</span><span>${sanitizeText(abbr1)}</span></div>`;
 
-        // Show all comparison stats (ESPN provides a curated set)
-        const maxStats = Math.min(comp0.length, 10);
-        for (let i = 0; i < maxStats; i++) {
-            const s0 = comp0[i];
-            const s1 = comp1.find(s => s.name === s0.name) || comp1[i];
-            if (!s0 || !s1) continue;
+        // Get first stat group's totals (batting for MLB, main stats for NBA/NHL)
+        const group0 = (team0.stats || [])[0];
+        const group1 = (team1.stats || [])[0];
 
-            const homeVal = parseFloat(s0.displayValue) || 0;
-            const awayVal = parseFloat(s1.displayValue) || 0;
-            const total = homeVal + awayVal || 1;
-            const homePct = (homeVal / total) * 100;
-            const awayPct = (awayVal / total) * 100;
+        if (group0 && group1 && group0.labels && group0.totals && group1.totals) {
+            // Pick key stats to show based on league
+            let showLabels;
+            if (league === 'mlb') {
+                showLabels = ['R', 'H', 'HR', 'RBI', 'BB', 'K'];
+            } else if (league === 'nba' || league === 'wnba') {
+                showLabels = ['PTS', 'REB', 'AST', 'STL', 'BLK', 'TO'];
+            } else if (league === 'nhl') {
+                showLabels = ['G', 'A', 'SOG', 'HIT', 'BLK', 'PIM'];
+            } else if (league === 'nfl') {
+                showLabels = ['YDS', 'TD', 'TO'];
+            } else {
+                showLabels = group0.labels.slice(0, 8);
+            }
+
+            for (const lbl of showLabels) {
+                const idx = group0.labels.indexOf(lbl);
+                if (idx === -1) continue;
+                const homeVal = parseFloat(group0.totals[idx]) || 0;
+                const awayVal = parseFloat(group1.totals[idx]) || 0;
+                const total = homeVal + awayVal || 1;
+                const homePct = (homeVal / total) * 100;
+                const awayPct = (awayVal / total) * 100;
 
             html += `<div class="stat-row">
-                <span class="stat-value stat-value-home">${sanitizeText(s0.displayValue)}</span>
+                <span class="stat-value stat-value-home">${homeVal}</span>
                 <div class="stat-center">
                     <div class="stat-bar">
                         <div class="stat-bar-home" style="width:${homePct}%"></div>
                         <div class="stat-bar-away" style="width:${awayPct}%"></div>
                     </div>
-                    <span class="stat-name">${sanitizeText(s0.label || s0.name || '')}</span>
+                    <span class="stat-name">${sanitizeText(lbl)}</span>
                 </div>
-                <span class="stat-value stat-value-away">${sanitizeText(s1.displayValue)}</span>
+                <span class="stat-value stat-value-away">${awayVal}</span>
             </div>`;
+            }
         }
     } else {
         // Fallback: build comparison from player totals
