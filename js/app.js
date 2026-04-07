@@ -2735,7 +2735,7 @@ document.addEventListener('click', (e) => {
 
 // --- Push Notifications ------------------------------------------------------
 
-const PUSH_SERVER_URL = ''; // Set to Cloud Run URL for production
+const PUSH_SERVER_URL = 'https://push-server-15838356607.us-central1.run.app';
 
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
@@ -2766,7 +2766,7 @@ async function subscribeToPush() {
         const registration = await navigator.serviceWorker.ready;
 
         // Get VAPID public key from push server
-        const vapidResponse = await fetch(`${PUSH_SERVER_URL}/vapid-public-key`);
+        const vapidResponse = await fetch(`${PUSH_SERVER_URL}/vapid-key`);
         const { publicKey } = await vapidResponse.json();
 
         const subscription = await registration.pushManager.subscribe({
