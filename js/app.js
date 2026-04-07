@@ -200,6 +200,9 @@ const api = (() => {
             if (teamId) params.team = teamId;
             return fetchJSON(`${PROXY_URL}/tsdb/season?${new URLSearchParams(params)}`);
         },
+        getEspnInjuries(sport, league, teamName) {
+            return fetchJSON(`${PROXY_URL}/espn/injuries?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&team=${encodeURIComponent(teamName)}`);
+        },
         getEspnTeamRecord(sport, league, teamName) {
             return fetchJSON(`${PROXY_URL}/espn/team?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&name=${encodeURIComponent(teamName)}`);
         },
@@ -1168,6 +1171,11 @@ function buildExpandedContent(expandedEl, team, data) {
         </div>`;
     }
 
+    // --- Injuries placeholder (filled async) ---
+    if (espnMapping) {
+        html += `<div class="expanded-section" id="injuries-${team.source}-${team.id}"></div>`;
+    }
+
     // --- Season Schedule (replaces separate upcoming/results sections) ---
     html += `<div class="expanded-section">`;
     html += `<h4>${t('seasonSchedule')}</h4>`;
@@ -1188,6 +1196,11 @@ function buildExpandedContent(expandedEl, team, data) {
     // --- Async: fetch ESPN record (uses team name, no ESPN ID needed) ---
     if (espnMapping) {
         fetchEspnRecord(team, espnMapping);
+    }
+
+    // --- Async: fetch injuries ---
+    if (espnMapping) {
+        fetchEspnInjuries(team, espnMapping);
     }
 
     // --- Async: fetch season schedule ---
@@ -1269,6 +1282,42 @@ function fetchEspnRecord(team, espnMapping) {
         })
         .catch(() => {
             if (container) container.remove();
+        });
+}
+
+function fetchEspnInjuries(team, espnMapping) {
+    const container = document.getElementById(`injuries-${team.source}-${team.id}`);
+    if (!container) return;
+
+    api.getEspnInjuries(espnMapping.sport, espnMapping.league, team.name)
+        .then(data => {
+            const injuries = data.injuries || [];
+            if (injuries.length === 0) {
+                container.remove();
+                return;
+            }
+
+            let html = `<h4>${t('injuries') || 'Injuries'} (${injuries.length})</h4>`;
+            html += `<div class="injury-list">`;
+            injuries.forEach(inj => {
+                const statusLower = (inj.status || '').toLowerCase();
+                let dot = '🟡'; // default yellow for day-to-day
+                if (statusLower.includes('out') || statusLower.includes('il') || statusLower.includes('injured')) dot = '🔴';
+                if (statusLower.includes('day-to-day') || statusLower.includes('questionable') || statusLower.includes('probable')) dot = '🟡';
+
+                html += `<div class="injury-item">
+                    <span class="injury-dot">${dot}</span>
+                    <div class="injury-info">
+                        <span class="injury-player">${sanitizeText(inj.player)}</span>
+                        <span class="injury-status">${sanitizeText(inj.status)}${inj.detail ? ' — ' + sanitizeText(inj.detail) : ''}</span>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        })
+        .catch(() => {
+            container.remove();
         });
 }
 

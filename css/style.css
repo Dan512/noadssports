@@ -2048,6 +2048,47 @@ body.layout-locked .section-controls {
 }
 
 /* Season schedule divider */
+/* Injury list */
+.injury-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.injury-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem;
+}
+
+.injury-item:last-child {
+    border-bottom: none;
+}
+
+.injury-dot {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    line-height: 1.6;
+}
+
+.injury-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+
+.injury-player {
+    font-weight: 600;
+}
+
+.injury-status {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
 .season-divider {
     display: flex;
     align-items: center;
