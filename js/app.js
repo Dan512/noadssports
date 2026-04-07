@@ -2422,9 +2422,14 @@ function applySettings() {
     if (langBtn && langPopover && langList) {
         // Set button text to current language
         const curLang = getCurrentLang();
-        const flagHtml = curLang === 'en'
-            ? '<img src="/img/flags/en.png" class="lang-btn-flag"><img src="/img/flags/gb.png" class="lang-btn-flag">'
-            : `<img src="/img/flags/${curLang}.png" class="lang-btn-flag">`;
+        let flagHtml;
+        if (curLang === 'en') {
+            flagHtml = '<img src="/img/flags/en.png" class="lang-btn-flag"><img src="/img/flags/gb.png" class="lang-btn-flag">';
+        } else if (curLang === 'pt') {
+            flagHtml = '<img src="/img/flags/pt-br.png" class="lang-btn-flag"><img src="/img/flags/pt-eu.png" class="lang-btn-flag">';
+        } else {
+            flagHtml = `<img src="/img/flags/${curLang}.png" class="lang-btn-flag">`;
+        }
         langBtn.innerHTML = `${t('language')}: ${flagHtml} ${LANGUAGE_NAMES[curLang] || 'English'}`;
 
         // Build radio list with flags
@@ -2433,6 +2438,8 @@ function applySettings() {
             let flagHtml;
             if (code === 'en') {
                 flagHtml = `<span class="lang-flags"><img src="/img/flags/en.png" alt="US"><img src="/img/flags/gb.png" alt="UK"></span>`;
+            } else if (code === 'pt') {
+                flagHtml = `<span class="lang-flags"><img src="/img/flags/pt-br.png" alt="BR"><img src="/img/flags/pt-eu.png" alt="PT"></span>`;
             } else {
                 flagHtml = `<img class="lang-flag" src="/img/flags/${code}.png" alt="">`;
             }
@@ -2730,6 +2737,7 @@ renderDashboard();
 loadHeadlines();
 startPolling();
 registerServiceWorker();
+renderPrivacyContent();
 
 // --- Layout Lock (simplified — no sports-view lock button in V1 dashboard) ---
 
@@ -2782,6 +2790,21 @@ document.addEventListener('click', (e) => {
         panel.hidden = true;
     }
 });
+
+function renderPrivacyContent() {
+    const container = document.getElementById('privacy-content');
+    if (!container) return;
+    container.innerHTML = `
+        <p><strong>${t('privacyTitle')}</strong></p>
+        <p>${t('privacyIntro')}</p>
+        <p>${t('privacyApi')}</p>
+        <p>${t('privacyStorage')}</p>
+        <p>${t('privacyPush')}</p>
+        <p>${t('privacyFeedback')}</p>
+        <p>${t('privacyAffiliate')}</p>
+        <p>${t('privacySupport')} <a href="https://ko-fi.com/noadsdude" target="_blank" rel="noopener" style="color:var(--accent);">${t('privacySupportLink')}</a></p>
+    `;
+}
 
 // --- Push Notifications ------------------------------------------------------
 

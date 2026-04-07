@@ -125,16 +125,10 @@
         </div>
     </div>
 
-    <!-- Privacy panel -->
+    <!-- Privacy panel (content filled by JS for i18n) -->
     <div id="privacy-panel" hidden>
         <button id="privacy-close" aria-label="Close">&times;</button>
-        <p><strong>No cookies. No tracking. No ads.</strong></p>
-        <p>This site does not use cookies, does not track you, and does not collect any personal information. We don't use analytics, fingerprinting, or any form of user tracking.</p>
-        <p>When you search for a team or league, requests are sent to third-party sports data APIs to retrieve scores and schedules. No personal data is transmitted.</p>
-        <p>Your preferences (dark mode, layout, and notification settings) are saved in your browser's local storage (not a cookie) so they persist between visits. You can clear this anytime by clearing your browser data.</p>
-        <p>If you enable push notifications, a randomly generated subscription token and your chosen teams are stored on our server so we can send you game alerts. This token is not linked to your identity in any way — we cannot tell who you are, what device you use, or correlate your visits. You can manage or disable notifications for each team in Settings > Manage Notifications, or disable them entirely in your browser settings.</p>
-        <p>If you submit feedback, only your message, feedback type, and language setting are sent to our server. No personal information, IP address, or device data is collected or stored with your feedback.</p>
-        <p>This site is open source and supported by tips from our visitors. No data is sold, shared, or monetized in any way. If you think this is awesome, please consider <a href="https://ko-fi.com/noadsdude" target="_blank" rel="noopener" style="color:var(--accent);">clicking here to support us</a>.</p>
+        <div id="privacy-content"></div>
     </div>
 
     <!-- Theme toggle + restore defaults -->
