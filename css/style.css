@@ -1407,6 +1407,7 @@ body.layout-locked .section-controls {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
+    cursor: pointer;
 }
 
 .team-card-badge {
@@ -1514,23 +1515,44 @@ body.layout-locked .section-controls {
     border-top: 1px solid var(--border-light);
 }
 
-.team-card-remove {
+.team-card-actions {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    background: none;
-    border: none;
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    cursor: pointer;
+    display: flex;
+    gap: 0.25rem;
     opacity: 0;
-    transition: opacity 0.2s, color 0.2s;
-    padding: 0.25rem;
-    line-height: 1;
+    transition: opacity 0.2s;
 }
 
-.team-card:hover .team-card-remove { opacity: 1; }
+.team-card:hover .team-card-actions { opacity: 1; }
+
+.team-card-remove,
+.team-card-collapse {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
 .team-card-remove:hover { color: var(--loss); }
+.team-card-collapse:hover { color: var(--accent); }
+
+.team-card-collapse {
+    display: none;
+}
+
+.team-card.expanded .team-card-collapse {
+    display: inline-block;
+}
+
+.team-card.expanded .team-card-actions {
+    opacity: 1;
+}
 
 /* Live pulse */
 .team-card-live {

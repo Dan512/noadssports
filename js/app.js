@@ -840,7 +840,10 @@ function renderTeamCards() {
         const badge = badgeUrl ? `<img class="team-card-badge" src="${sanitizeAttr(badgeUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="team-card-badge"></div>';
         return `
             <div class="team-card" data-team-key="${sanitizeAttr(teamKey)}">
-                <button class="team-card-remove" title="Remove team" data-team-id="${sanitizeAttr(team.id)}" data-source="${sanitizeAttr(team.source)}">&times;</button>
+                <div class="team-card-actions">
+                    <button class="team-card-collapse" title="Collapse">&#9650;</button>
+                    <button class="team-card-remove" title="Remove team" data-team-id="${sanitizeAttr(team.id)}" data-source="${sanitizeAttr(team.source)}">&times;</button>
+                </div>
                 <div class="team-card-header">
                     ${badge}
                     <div class="team-card-info">
@@ -852,7 +855,6 @@ function renderTeamCards() {
                     <p class="team-card-placeholder">${t('loading')}</p>
                 </div>
                 <div class="team-card-expanded" id="expanded-${sanitizeAttr(teamKey)}"></div>
-                <button class="team-card-collapse">${t('collapse')}</button>
             </div>
         `;
     }).join('');
@@ -889,19 +891,24 @@ teamCardsContainer.addEventListener('click', (e) => {
 
 // Expand/collapse team card — delegated click handler
 teamCardsContainer.addEventListener('click', (e) => {
-    // Ignore clicks on remove button, links, wtw-link, h2h-link, collapse button
+    // Ignore clicks on interactive elements
     if (e.target.closest('.team-card-remove')) return;
     if (e.target.closest('a')) return;
     if (e.target.closest('.wtw-link')) return;
     if (e.target.closest('.h2h-link')) return;
+    if (e.target.closest('.clickable-stat')) return;
+    if (e.target.closest('.match-stats')) return;
 
     const card = e.target.closest('.team-card');
     if (!card) return;
 
-    const isCollapseBtn = e.target.closest('.team-card-collapse');
     const teamKey = card.dataset.teamKey;
+    const isCollapseBtn = e.target.closest('.team-card-collapse');
+    const isHeader = e.target.closest('.team-card-header');
 
     if (card.classList.contains('expanded')) {
+        // Only collapse if clicking the header or collapse button
+        if (!isCollapseBtn && !isHeader) return;
         // Collapse this card
         card.classList.remove('expanded');
         const expandedEl = document.getElementById(`expanded-${teamKey}`);
