@@ -595,14 +595,16 @@ const STREAMING_SERVICES = [
 // --- Sanitization Helpers ----------------------------------------------------
 
 function sanitizeText(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
+    if (typeof str !== 'string') str = String(str);
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
 function sanitizeAttr(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
+    if (typeof str !== 'string') str = String(str);
     return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
@@ -1048,31 +1050,48 @@ function guessCurrentSeason(leagueId) {
 function renderTeamCardData(cardEl, team, data) {
     let html = '';
 
-    // Next game
+    // Next game / Live game
     const nextEvent = data.nextEvents[0];
     if (nextEvent) {
         const isHome = nextEvent.idHomeTeam === team.id || nextEvent.strHomeTeam === team.name;
         const opponent = isHome ? nextEvent.strAwayTeam : nextEvent.strHomeTeam;
         const prefix = isHome ? t('vs') : t('at');
-        let dateStr = '';
-        if (nextEvent.strTimestamp || nextEvent.dateEvent) {
-            try {
-                // strTimestamp from TheSportsDB is UTC but missing the Z suffix
-                let raw = nextEvent.strTimestamp || nextEvent.dateEvent;
-                if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
-                    raw += '+00:00';
-                }
-                const d = new Date(raw);
-                if (!isNaN(d)) {
-                    const locale = getCurrentLang();
-                    dateStr = ' \u00b7 ' + d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
-                    if (nextEvent.strTimestamp) {
-                        dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+
+        // Check if game is live
+        const status = (nextEvent.strStatus || '').toLowerCase();
+        const isLive = status && status !== 'not started' && status !== 'match finished' && status !== 'ft' && status !== '' && status !== 'ns';
+
+        if (isLive) {
+            // Live game — show score and status
+            const liveHome = nextEvent.intHomeScore || 0;
+            const liveAway = nextEvent.intAwayScore || 0;
+            html += `<div class="team-card-live">`;
+            html += `<span class="live-badge">LIVE</span>`;
+            html += `<span class="live-matchup">${prefix} ${sanitizeText(opponent)}</span>`;
+            html += `<span class="live-score">${sanitizeText(nextEvent.strHomeTeam)} ${liveHome} - ${liveAway} ${sanitizeText(nextEvent.strAwayTeam)}</span>`;
+            html += `<span class="live-status">${sanitizeText(nextEvent.strStatus || '')}</span>`;
+            html += `</div>`;
+        } else {
+            let dateStr = '';
+            if (nextEvent.strTimestamp || nextEvent.dateEvent) {
+                try {
+                    // strTimestamp from TheSportsDB is UTC but missing the Z suffix
+                    let raw = nextEvent.strTimestamp || nextEvent.dateEvent;
+                    if (raw && !raw.endsWith('Z') && !raw.includes('+') && !raw.includes('-', 10)) {
+                        raw += '+00:00';
                     }
-                }
-            } catch (e) { /* ignore date parse errors */ }
+                    const d = new Date(raw);
+                    if (!isNaN(d)) {
+                        const locale = getCurrentLang();
+                        dateStr = ' \u00b7 ' + d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
+                        if (nextEvent.strTimestamp) {
+                            dateStr += ' ' + d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+                        }
+                    }
+                } catch (e) { /* ignore date parse errors */ }
+            }
+            html += `<p class="team-card-next"><strong>${t('next')}</strong> ${prefix} ${sanitizeText(opponent)}${dateStr}</p>`;
         }
-        html += `<p class="team-card-next"><strong>${t('next')}</strong> ${prefix} ${sanitizeText(opponent)}${dateStr}</p>`;
         // Venue
         if (nextEvent.strVenue) {
             html += `<p class="team-card-venue">${sanitizeText(nextEvent.strVenue)}</p>`;
