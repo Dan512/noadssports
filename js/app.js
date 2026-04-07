@@ -1897,6 +1897,7 @@ function showTeamConfig(teamData) {
         <label><input type="checkbox" id="notif-game-start" value="gameStart" checked> ${t('notifGameStart')}</label>
         <label><input type="checkbox" id="notif-final" value="finalScore" checked> ${t('notifFinalScore')}</label>
         <label><input type="checkbox" id="notif-close" value="closeGame"> ${t('notifCloseGame')}</label>
+        <label><input type="checkbox" id="notif-score-update" value="scoreUpdate"> ${t('notifScoreUpdate')}</label>
         <label><input type="checkbox" id="notif-news" value="teamNews"> ${t('notifTeamNews')}</label>
     `;
 
@@ -1906,6 +1907,7 @@ function showTeamConfig(teamData) {
         document.getElementById('notif-game-start'),
         document.getElementById('notif-final'),
         document.getElementById('notif-close'),
+        document.getElementById('notif-score-update'),
         document.getElementById('notif-news')
     ];
 
@@ -1974,6 +1976,7 @@ confirmAddTeamBtn.addEventListener('click', () => {
         gameStart: document.getElementById('notif-game-start').checked,
         finalScore: document.getElementById('notif-final').checked,
         closeGame: document.getElementById('notif-close').checked,
+        scoreUpdate: document.getElementById('notif-score-update').checked,
         teamNews: document.getElementById('notif-news').checked
     };
     setNotificationPrefsForTeam(team.id, team.source, notifPrefs);
@@ -2438,7 +2441,7 @@ function applySettings() {
             const allPrefs = loadNotificationPrefs();
             notifList.innerHTML = teams.map(team => {
                 const teamKey = `${team.source}:${team.id}`;
-                const prefs = allPrefs[teamKey] || { gameStart: false, finalScore: false, closeGame: false, teamNews: false };
+                const prefs = allPrefs[teamKey] || { gameStart: false, finalScore: false, closeGame: false, scoreUpdate: false, teamNews: false };
                 const badgeUrl = getTeamBadge(team);
                 const badge = badgeUrl ? `<img src="${sanitizeAttr(badgeUrl)}" alt="" onerror="this.style.display='none'">` : '';
 
@@ -2452,6 +2455,7 @@ function applySettings() {
                         <label><input type="checkbox" data-notif="gameStart" ${prefs.gameStart ? 'checked' : ''}> ${t('notifGameStart')}</label>
                         <label><input type="checkbox" data-notif="finalScore" ${prefs.finalScore ? 'checked' : ''}> ${t('notifFinalScore')}</label>
                         <label><input type="checkbox" data-notif="closeGame" ${prefs.closeGame ? 'checked' : ''}> ${t('notifCloseGame')}</label>
+                        <label><input type="checkbox" data-notif="scoreUpdate" ${prefs.scoreUpdate ? 'checked' : ''}> ${t('notifScoreUpdate')}</label>
                         <label><input type="checkbox" data-notif="teamNews" ${prefs.teamNews ? 'checked' : ''}> ${t('notifTeamNews')}</label>
                     </div>
                 </div>`;
@@ -2480,7 +2484,7 @@ function applySettings() {
             const allPrefs = loadNotificationPrefs();
             for (const team of teams) {
                 const key = `${team.source}:${team.id}`;
-                allPrefs[key] = { gameStart: true, finalScore: true, closeGame: true, teamNews: true };
+                allPrefs[key] = { gameStart: true, finalScore: true, closeGame: true, scoreUpdate: true, teamNews: true };
             }
             saveNotificationPrefs(allPrefs);
             syncPushSubscription();
@@ -2492,7 +2496,7 @@ function applySettings() {
             const allPrefs = loadNotificationPrefs();
             for (const team of teams) {
                 const key = `${team.source}:${team.id}`;
-                allPrefs[key] = { gameStart: false, finalScore: false, closeGame: false, teamNews: false };
+                allPrefs[key] = { gameStart: false, finalScore: false, closeGame: false, scoreUpdate: false, teamNews: false };
             }
             saveNotificationPrefs(allPrefs);
             syncPushSubscription();
