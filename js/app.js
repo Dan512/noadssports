@@ -200,6 +200,12 @@ const api = (() => {
             if (teamId) params.team = teamId;
             return fetchJSON(`${PROXY_URL}/tsdb/season?${new URLSearchParams(params)}`);
         },
+        getEventStats(eventId) {
+            return fetchJSON(`${PROXY_URL}/tsdb/event/stats?id=${encodeURIComponent(eventId)}`);
+        },
+        getHeadToHead(homeTeam, awayTeam) {
+            return fetchJSON(`${PROXY_URL}/tsdb/h2h?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`);
+        },
         getEspnInjuries(sport, league, teamName) {
             return fetchJSON(`${PROXY_URL}/espn/injuries?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&team=${encodeURIComponent(teamName)}`);
         },
@@ -528,6 +534,7 @@ const BROWSE_LEAGUES = [
     { id: '4332', name: 'Serie A', tsdbName: 'Italian Serie A', source: 'tsdb', sport: 'Soccer' },
     { id: '4331', name: 'Bundesliga', tsdbName: 'German Bundesliga', source: 'tsdb', sport: 'Soccer' },
     { id: '4480', name: 'Champions League', tsdbName: 'UEFA Champions League', source: 'tsdb', sport: 'Soccer' },
+    { id: '4429', name: 'FIFA World Cup 2026', tsdbName: 'FIFA World Cup', source: 'tsdb', sport: 'Soccer' },
     { id: 'football', name: 'NCAA Football', source: 'ncaa', sport: 'Football' },
     { id: 'basketball-men', name: 'NCAA Basketball (M)', source: 'ncaa', sport: 'Basketball' },
     { id: 'basketball-women', name: 'NCAA Basketball (W)', source: 'ncaa', sport: 'Basketball' },
@@ -871,12 +878,22 @@ teamCardsContainer.addEventListener('click', (e) => {
     }
 });
 
+// Head-to-Head — delegated click handler on team cards
+teamCardsContainer.addEventListener('click', (e) => {
+    const h2hLink = e.target.closest('.h2h-link');
+    if (h2hLink) {
+        e.stopPropagation();
+        openHeadToHead(h2hLink.dataset.home, h2hLink.dataset.away, h2hLink);
+    }
+});
+
 // Expand/collapse team card — delegated click handler
 teamCardsContainer.addEventListener('click', (e) => {
-    // Ignore clicks on remove button, links, wtw-link, collapse button
+    // Ignore clicks on remove button, links, wtw-link, h2h-link, collapse button
     if (e.target.closest('.team-card-remove')) return;
     if (e.target.closest('a')) return;
     if (e.target.closest('.wtw-link')) return;
+    if (e.target.closest('.h2h-link')) return;
 
     const card = e.target.closest('.team-card');
     if (!card) return;
@@ -1113,6 +1130,12 @@ function renderTeamCardData(cardEl, team, data) {
             if (sportTag && STREAMING_SERVICES.some(svc => svc.sports.includes(sportTag))) {
                 html += `<span class="wtw-link" data-sport="${sanitizeAttr(sportTag)}">📺 ${t('whereToWatch')}</span>`;
             }
+        }
+        // Head-to-Head link
+        const h2hHome = nextEvent.strHomeTeam || '';
+        const h2hAway = nextEvent.strAwayTeam || '';
+        if (h2hHome && h2hAway) {
+            html += `<span class="h2h-link" data-home="${sanitizeAttr(h2hHome)}" data-away="${sanitizeAttr(h2hAway)}">⚔ ${t('headToHead')}</span>`;
         }
     } else {
         html += `<p class="team-card-next text-muted">${t('noUpcoming')}</p>`;
@@ -1404,20 +1427,30 @@ function renderSeasonScheduleList(container, team, events, locale) {
             }
         } catch (e) { /* ignore */ }
 
-        const isPast = ev.intHomeScore != null && ev.intAwayScore != null &&
+        const hasScores = ev.intHomeScore != null && ev.intAwayScore != null &&
                        String(ev.intHomeScore).trim() !== '' && String(ev.intAwayScore).trim() !== '';
+        const gameDate = ev.dateEvent ? new Date(ev.dateEvent + 'T23:59:59') : null;
+        const isDatePast = gameDate && gameDate < new Date();
+        const isPast = hasScores || isDatePast;
 
         if (isPast) {
-            const homeScore = parseInt(ev.intHomeScore, 10) || 0;
-            const awayScore = parseInt(ev.intAwayScore, 10) || 0;
-            const won = isHome ? homeScore > awayScore : awayScore > homeScore;
-            const draw = homeScore === awayScore;
-            const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
-            const score = `${homeScore} - ${awayScore}`;
-
-            pastHtml += `<div class="schedule-item past ${resultClass}">`;
-            pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
-            pastHtml += `<span><span class="result-score">${score}</span> <span class="schedule-date">${dateStr}</span></span>`;
+            const eventId = ev.idEvent || '';
+            let scoreHtml;
+            if (hasScores) {
+                const homeScore = parseInt(ev.intHomeScore, 10) || 0;
+                const awayScore = parseInt(ev.intAwayScore, 10) || 0;
+                const won = isHome ? homeScore > awayScore : awayScore > homeScore;
+                const draw = homeScore === awayScore;
+                const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
+                pastHtml += `<div class="schedule-item past ${resultClass} clickable-stat" data-event-id="${sanitizeAttr(eventId)}" data-home="${sanitizeAttr(ev.strHomeTeam || '')}" data-away="${sanitizeAttr(ev.strAwayTeam || '')}">`;
+                pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
+                pastHtml += `<span><span class="result-score">${homeScore} - ${awayScore}</span> <span class="schedule-date">${dateStr}</span></span>`;
+            } else {
+                // Past game but no scores recorded
+                pastHtml += `<div class="schedule-item past" data-event-id="${sanitizeAttr(eventId)}">`;
+                pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
+                pastHtml += `<span><span class="result-score" style="color:var(--text-muted)">--</span> <span class="schedule-date">${dateStr}</span></span>`;
+            }
             pastHtml += `</div>`;
             totalPast++;
         } else {
@@ -1452,6 +1485,74 @@ function renderSeasonScheduleList(container, team, events, locale) {
             }, 100);
         }
     }
+
+    // Click handler for past games — show match stats
+    container.querySelectorAll('.clickable-stat').forEach(item => {
+        item.addEventListener('click', async () => {
+            const eventId = item.dataset.eventId;
+            if (!eventId) return;
+
+            // Toggle: if stats already shown, collapse
+            const existing = item.nextElementSibling;
+            if (existing && existing.classList.contains('match-stats')) {
+                existing.remove();
+                return;
+            }
+
+            // Remove any other open stats panels in this container
+            container.querySelectorAll('.match-stats').forEach(el => el.remove());
+
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'match-stats';
+            statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('loading')}</p>`;
+            item.after(statsDiv);
+
+            try {
+                const data = await api.getEventStats(eventId);
+                const stats = data.eventstats || [];
+                if (stats.length === 0) {
+                    statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
+                    return;
+                }
+
+                const homeName = item.dataset.home;
+                const awayName = item.dataset.away;
+                const SHOW_STATS = ['Shots on Goal', 'Total Shots', 'Ball Possession', 'Corner Kicks', 'Fouls', 'Yellow Cards', 'Red Cards', 'Offsides', 'Goalkeeper Saves', 'Total passes'];
+                const filtered = stats.filter(s => SHOW_STATS.includes(s.strStat));
+
+                if (filtered.length === 0) {
+                    statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
+                    return;
+                }
+
+                let rows = `<div class="match-stats-header"><span>${sanitizeText(homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(awayName)}</span></div>`;
+                for (const s of filtered) {
+                    const homeVal = parseFloat(s.intHome) || 0;
+                    const awayVal = parseFloat(s.intAway) || 0;
+                    const total = homeVal + awayVal || 1;
+                    const homePct = (homeVal / total) * 100;
+                    const awayPct = (awayVal / total) * 100;
+                    const homeDisplay = s.strStat === 'Ball Possession' ? s.intHome + '%' : s.intHome;
+                    const awayDisplay = s.strStat === 'Ball Possession' ? s.intAway + '%' : s.intAway;
+
+                    rows += `<div class="stat-row">
+                        <span class="stat-value stat-value-home">${homeDisplay}</span>
+                        <div class="stat-center">
+                            <div class="stat-bar">
+                                <div class="stat-bar-home" style="width:${homePct}%"></div>
+                                <div class="stat-bar-away" style="width:${awayPct}%"></div>
+                            </div>
+                            <span class="stat-name">${sanitizeText(s.strStat)}</span>
+                        </div>
+                        <span class="stat-value stat-value-away">${awayDisplay}</span>
+                    </div>`;
+                }
+                statsDiv.innerHTML = rows;
+            } catch (err) {
+                statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
+            }
+        });
+    });
 }
 
 function renderFallbackSchedule(container, team, data, locale) {
@@ -2067,6 +2168,7 @@ const LEAGUE_TO_SPORT_TAG = {
     'Italian Serie A': 'Serie A', 'Serie A': 'Serie A',
     'German Bundesliga': 'Bundesliga', 'Bundesliga': 'Bundesliga',
     'Champions League': 'Champions League', 'UEFA Champions League': 'Champions League',
+    'FIFA World Cup': 'Soccer', 'FIFA World Cup 2026': 'Soccer',
     'NCAA Football': 'NCAA', 'NCAA Basketball (M)': 'NCAA', 'NCAA Basketball (W)': 'NCAA',
     'American Football': 'NFL', 'Basketball': 'NBA', 'Baseball': 'MLB', 'Ice Hockey': 'NHL',
     'Soccer': 'MLS',
@@ -2143,6 +2245,107 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         const popup = document.getElementById('wtw-popup');
         if (popup) popup.hidden = true;
+        const h2h = document.getElementById('h2h-popup');
+        if (h2h) h2h.hidden = true;
+    }
+});
+
+// --- Head-to-Head popup -------------------------------------------------------
+
+async function openHeadToHead(homeTeam, awayTeam, anchorEl) {
+    const popup = document.getElementById('h2h-popup');
+    const container = document.getElementById('h2h-popup-content');
+    if (!popup || !container) return;
+
+    // Translate heading
+    const heading = popup.querySelector('h4');
+    if (heading) heading.textContent = t('headToHead');
+
+    container.innerHTML = `<p class="text-muted" style="font-size:0.8rem;">${t('loading')}</p>`;
+
+    // Position near the clicked link
+    popup.hidden = false;
+    const rect = anchorEl.getBoundingClientRect();
+    const popupWidth = 320;
+    let left = rect.left;
+    let top = rect.bottom + 6;
+    if (left + popupWidth > window.innerWidth - 16) left = window.innerWidth - popupWidth - 16;
+    if (left < 16) left = 16;
+    if (top + 350 > window.innerHeight) top = rect.top - 356;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+
+    try {
+        const data = await api.getHeadToHead(homeTeam, awayTeam);
+        const events = (data.events || []).filter(ev =>
+            ev.intHomeScore != null && ev.intAwayScore != null &&
+            String(ev.intHomeScore).trim() !== '' && String(ev.intAwayScore).trim() !== ''
+        );
+
+        if (events.length === 0) {
+            container.innerHTML = `<p class="text-muted" style="font-size:0.8rem;">${t('noData')}</p>`;
+            return;
+        }
+
+        // Calculate overall record
+        let homeWins = 0, awayWins = 0, draws = 0;
+        for (const ev of events) {
+            const hs = parseInt(ev.intHomeScore, 10) || 0;
+            const as = parseInt(ev.intAwayScore, 10) || 0;
+            // "home" and "away" in each match refer to that match's home/away, not the original query
+            // We need to count wins per team name
+            const winner = hs > as ? ev.strHomeTeam : (as > hs ? ev.strAwayTeam : null);
+            if (!winner) {
+                draws++;
+            } else if (winner === homeTeam) {
+                homeWins++;
+            } else if (winner === awayTeam) {
+                awayWins++;
+            } else {
+                // Could be reversed name match
+                draws++;
+            }
+        }
+
+        let html = `<div class="h2h-summary">`;
+        html += `<div class="h2h-record-row"><span class="h2h-team-name">${sanitizeText(homeTeam)}</span><span class="h2h-record-val">${homeWins} ${t('wins')}</span></div>`;
+        html += `<div class="h2h-record-row"><span class="h2h-team-name">${t('draws')}</span><span class="h2h-record-val">${draws}</span></div>`;
+        html += `<div class="h2h-record-row"><span class="h2h-team-name">${sanitizeText(awayTeam)}</span><span class="h2h-record-val">${awayWins} ${t('wins')}</span></div>`;
+        html += `</div>`;
+
+        // Last 5 meetings
+        const last5 = events.slice(0, 5);
+        html += `<div class="h2h-meetings-title">${t('meetings')}</div>`;
+        for (const ev of last5) {
+            const hs = ev.intHomeScore;
+            const as = ev.intAwayScore;
+            let dateStr = '';
+            if (ev.dateEvent) {
+                try {
+                    const d = new Date(ev.dateEvent);
+                    if (!isNaN(d)) dateStr = d.toLocaleDateString(getCurrentLang(), { year: 'numeric', month: 'short', day: 'numeric' });
+                } catch (e) { /* ignore */ }
+            }
+            html += `<div class="h2h-match">`;
+            html += `<span class="h2h-match-teams">${sanitizeText(ev.strHomeTeam)} <strong>${hs} - ${as}</strong> ${sanitizeText(ev.strAwayTeam)}</span>`;
+            if (dateStr) html += `<span class="h2h-match-date">${dateStr}</span>`;
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = `<p class="text-muted" style="font-size:0.8rem;">${t('noData')}</p>`;
+    }
+}
+
+// Close H2H popup
+document.getElementById('h2h-popup-close')?.addEventListener('click', () => {
+    document.getElementById('h2h-popup').hidden = true;
+});
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('h2h-popup');
+    if (popup && !popup.hidden && !popup.contains(e.target) && !e.target.classList.contains('h2h-link')) {
+        popup.hidden = true;
     }
 });
 
