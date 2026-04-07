@@ -496,6 +496,74 @@ body {
     color: var(--text);
 }
 
+/* Font size setting */
+.settings-font-size {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+}
+
+.settings-font-label {
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.font-size-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.font-size-btn {
+    background: var(--btn-hover-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    line-height: 1;
+}
+
+.font-size-btn[data-size="small"] {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.45rem;
+}
+
+.font-size-btn[data-size="medium"] {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.45rem;
+}
+
+.font-size-btn[data-size="large"] {
+    font-size: 1.05rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.font-size-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.font-size-btn:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+/* Font size root overrides */
+html.font-small {
+    font-size: 13px;
+}
+
+html.font-medium {
+    font-size: 16px;
+}
+
+html.font-large {
+    font-size: 19px;
+}
+
 .settings-revert-btn {
     margin-top: 0.5rem;
     padding: 0.4rem 0.75rem;

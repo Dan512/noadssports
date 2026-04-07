@@ -2385,12 +2385,32 @@ function applySettings() {
         });
     });
 
+    // Font size buttons
+    function applyFontSize(size) {
+        document.documentElement.classList.remove('font-small', 'font-medium', 'font-large');
+        document.documentElement.classList.add(`font-${size}`);
+        localStorage.setItem('fontSize', size);
+        document.querySelectorAll('.font-size-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.size === size);
+        });
+    }
+
+    // Apply saved font size on load
+    const savedFontSize = localStorage.getItem('fontSize') || 'medium';
+    applyFontSize(savedFontSize);
+
+    document.querySelectorAll('.font-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyFontSize(btn.dataset.size));
+    });
+
     // Restore defaults
     document.getElementById('settings-revert').addEventListener('click', () => {
         ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews', 'showWhereToWatch', 'showFeedbackBtn'].forEach(k => {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
+        localStorage.removeItem('fontSize');
+        applyFontSize('medium');
         applySettings();
         popover.hidden = true;
     });
