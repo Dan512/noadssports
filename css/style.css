@@ -2213,6 +2213,38 @@ body.layout-locked .section-controls {
     color: var(--text-muted);
 }
 
+/* Highlight video card */
+.highlight-card {
+    display: block;
+    margin-top: 0.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    text-decoration: none;
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    transition: border-color 0.2s;
+}
+
+.highlight-card:hover {
+    border-color: var(--accent);
+}
+
+.highlight-thumb {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 200px;
+    object-fit: cover;
+}
+
+.highlight-label {
+    display: block;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
 .season-divider {
     display: flex;
     align-items: center;

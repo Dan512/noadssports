@@ -1442,7 +1442,7 @@ function renderSeasonScheduleList(container, team, events, locale) {
                 const won = isHome ? homeScore > awayScore : awayScore > homeScore;
                 const draw = homeScore === awayScore;
                 const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
-                pastHtml += `<div class="schedule-item past ${resultClass} clickable-stat" data-event-id="${sanitizeAttr(eventId)}" data-home="${sanitizeAttr(ev.strHomeTeam || '')}" data-away="${sanitizeAttr(ev.strAwayTeam || '')}">`;
+                pastHtml += `<div class="schedule-item past ${resultClass} clickable-stat" data-event-id="${sanitizeAttr(eventId)}" data-home="${sanitizeAttr(ev.strHomeTeam || '')}" data-away="${sanitizeAttr(ev.strAwayTeam || '')}" data-video="${sanitizeAttr(ev.strVideo || '')}" data-thumb="${sanitizeAttr(ev.strThumb || '')}">`;
                 pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
                 pastHtml += `<span><span class="result-score">${homeScore} - ${awayScore}</span> <span class="schedule-date">${dateStr}</span></span>`;
             } else {
@@ -1547,9 +1547,32 @@ function renderSeasonScheduleList(container, team, events, locale) {
                         <span class="stat-value stat-value-away">${awayDisplay}</span>
                     </div>`;
                 }
+                // Add video highlight thumbnail if available
+                const videoUrl = item.dataset.video;
+                const thumbUrl = item.dataset.thumb;
+                if (videoUrl) {
+                    rows += `<a class="highlight-card" href="${sanitizeAttr(videoUrl)}" target="_blank" rel="noopener">`;
+                    if (thumbUrl) {
+                        rows += `<img class="highlight-thumb" src="${sanitizeAttr(thumbUrl)}" alt="Highlights" loading="lazy" onerror="this.style.display='none'">`;
+                    }
+                    rows += `<span class="highlight-label">▶ ${t('watchHighlights')}</span>`;
+                    rows += `</a>`;
+                }
+
                 statsDiv.innerHTML = rows;
             } catch (err) {
-                statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
+                // Even if stats fail, still show highlight if available
+                const videoUrl = item.dataset.video;
+                const thumbUrl = item.dataset.thumb;
+                let fallback = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
+                if (videoUrl) {
+                    fallback += `<a class="highlight-card" href="${sanitizeAttr(videoUrl)}" target="_blank" rel="noopener">`;
+                    if (thumbUrl) {
+                        fallback += `<img class="highlight-thumb" src="${sanitizeAttr(thumbUrl)}" alt="Highlights" loading="lazy" onerror="this.style.display='none'">`;
+                    }
+                    fallback += `<span class="highlight-label">▶ ${t('watchHighlights')}</span></a>`;
+                }
+                statsDiv.innerHTML = fallback;
             }
         });
     });
