@@ -212,6 +212,9 @@ const api = (() => {
         getEspnTeamRecord(sport, league, teamName) {
             return fetchJSON(`${PROXY_URL}/espn/team?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&name=${encodeURIComponent(teamName)}`);
         },
+        getEspnBoxScore(sport, league, home, away, date) {
+            return fetchJSON(`${PROXY_URL}/espn/boxscore?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&date=${encodeURIComponent(date)}`);
+        },
     };
 })();
 
@@ -1404,6 +1407,170 @@ function fetchSeasonSchedule(team, existingData, locale) {
         });
 }
 
+function renderEspnBoxScore(boxData, homeName, awayName, league) {
+    let html = '';
+
+    // Stat display configs per league
+    const STAT_CONFIGS = {
+        nba: {
+            // labels from ESPN: MIN, FG, 3PT, FT, OREB, DREB, REB, AST, STL, BLK, TO, PF, +/-, PTS
+            display: ['PTS', 'FG%', '3PT%', 'REB', 'AST', 'TO', 'STL', 'BLK'],
+            playerFormat(name, stats, labels) {
+                const get = (lbl) => stats[labels.indexOf(lbl)] || '0';
+                return `${sanitizeText(name)}: ${get('PTS')} PTS, ${get('REB')} REB, ${get('AST')} AST`;
+            }
+        },
+        mlb: {
+            display: null, // MLB has batting + pitching groups, handled specially
+            playerFormat(name, stats, labels, group) {
+                if (group.toLowerCase().includes('pitching')) {
+                    const get = (lbl) => stats[labels.indexOf(lbl)] || '0';
+                    return `${sanitizeText(name)}: ${get('IP')} IP, ${get('K')} K, ${get('ER')} ER`;
+                }
+                // Batting
+                const get = (lbl) => stats[labels.indexOf(lbl)] || '0';
+                const ab = get('AB');
+                const h = get('H');
+                const hr = get('HR');
+                const rbi = get('RBI');
+                return `${sanitizeText(name)}: ${h}-${ab}, ${hr} HR, ${rbi} RBI`;
+            }
+        },
+        nhl: {
+            display: ['G', 'A', 'PTS', 'SOG', 'HIT', 'BLK', 'PIM', 'FW'],
+            playerFormat(name, stats, labels) {
+                const get = (lbl) => stats[labels.indexOf(lbl)] || '0';
+                return `${sanitizeText(name)}: ${get('G')} G, ${get('A')} A, ${get('SOG')} SOG`;
+            }
+        },
+        nfl: {
+            display: null, // NFL has passing/rushing/receiving groups
+            playerFormat(name, stats, labels, group) {
+                const get = (lbl) => stats[labels.indexOf(lbl)] || '0';
+                const gLower = group.toLowerCase();
+                if (gLower.includes('passing')) {
+                    return `${sanitizeText(name)}: ${get('C/ATT')} C/ATT, ${get('YDS')} YDS, ${get('TD')} TD`;
+                } else if (gLower.includes('rushing')) {
+                    return `${sanitizeText(name)}: ${get('CAR')} CAR, ${get('YDS')} YDS, ${get('TD')} TD`;
+                } else if (gLower.includes('receiving')) {
+                    return `${sanitizeText(name)}: ${get('REC')} REC, ${get('YDS')} YDS, ${get('TD')} TD`;
+                }
+                return `${sanitizeText(name)}: ${stats.slice(0, 3).join(', ')}`;
+            }
+        },
+        wnba: null // Will fall back to nba
+    };
+
+    const config = STAT_CONFIGS[league] || STAT_CONFIGS[league === 'wnba' ? 'nba' : league];
+    if (!config) return '';
+
+    const teams = boxData.teams;
+
+    // --- Team totals comparison ---
+    // Use boxscore.teams comparison stats if available
+    if (boxData.teamComparison && boxData.teamComparison.length >= 2) {
+        html += `<div class="match-stats-header"><span>${sanitizeText(boxData.teamComparison[0].abbreviation || homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(boxData.teamComparison[1].abbreviation || awayName)}</span></div>`;
+
+        // Pick which stats to display based on league
+        const comp0 = boxData.teamComparison[0].statistics || [];
+        const comp1 = boxData.teamComparison[1].statistics || [];
+
+        // Show all comparison stats (ESPN provides a curated set)
+        const maxStats = Math.min(comp0.length, 10);
+        for (let i = 0; i < maxStats; i++) {
+            const s0 = comp0[i];
+            const s1 = comp1.find(s => s.name === s0.name) || comp1[i];
+            if (!s0 || !s1) continue;
+
+            const homeVal = parseFloat(s0.displayValue) || 0;
+            const awayVal = parseFloat(s1.displayValue) || 0;
+            const total = homeVal + awayVal || 1;
+            const homePct = (homeVal / total) * 100;
+            const awayPct = (awayVal / total) * 100;
+
+            html += `<div class="stat-row">
+                <span class="stat-value stat-value-home">${sanitizeText(s0.displayValue)}</span>
+                <div class="stat-center">
+                    <div class="stat-bar">
+                        <div class="stat-bar-home" style="width:${homePct}%"></div>
+                        <div class="stat-bar-away" style="width:${awayPct}%"></div>
+                    </div>
+                    <span class="stat-name">${sanitizeText(s0.label || s0.name || '')}</span>
+                </div>
+                <span class="stat-value stat-value-away">${sanitizeText(s1.displayValue)}</span>
+            </div>`;
+        }
+    } else {
+        // Fallback: build comparison from player totals
+        html += `<div class="match-stats-header"><span>${sanitizeText(teams[0].abbreviation || homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(teams[1].abbreviation || awayName)}</span></div>`;
+
+        // Use first stat group totals
+        if (teams[0].stats.length > 0 && teams[1].stats.length > 0) {
+            const labels = teams[0].stats[0].labels || [];
+            const totals0 = teams[0].stats[0].totals || [];
+            const totals1 = teams[1].stats[0].totals || [];
+
+            // Pick key stat indices based on league
+            let showLabels;
+            if (league === 'nba' || league === 'wnba') {
+                showLabels = ['PTS', 'REB', 'AST', 'STL', 'BLK', 'TO'];
+            } else if (league === 'nhl') {
+                showLabels = ['G', 'A', 'SOG', 'HIT', 'BLK', 'PIM'];
+            } else {
+                showLabels = labels.slice(0, 8);
+            }
+
+            for (const lbl of showLabels) {
+                const idx = labels.indexOf(lbl);
+                if (idx === -1) continue;
+                const homeVal = parseFloat(totals0[idx]) || 0;
+                const awayVal = parseFloat(totals1[idx]) || 0;
+                const total = homeVal + awayVal || 1;
+                const homePct = (homeVal / total) * 100;
+                const awayPct = (awayVal / total) * 100;
+
+                html += `<div class="stat-row">
+                    <span class="stat-value stat-value-home">${sanitizeText(totals0[idx])}</span>
+                    <div class="stat-center">
+                        <div class="stat-bar">
+                            <div class="stat-bar-home" style="width:${homePct}%"></div>
+                            <div class="stat-bar-away" style="width:${awayPct}%"></div>
+                        </div>
+                        <span class="stat-name">${sanitizeText(lbl)}</span>
+                    </div>
+                    <span class="stat-value stat-value-away">${sanitizeText(totals1[idx])}</span>
+                </div>`;
+            }
+        }
+    }
+
+    // --- Top players per team ---
+    for (const teamData of teams) {
+        let playerLines = [];
+        for (const group of (teamData.topPlayers || [])) {
+            const groupName = group.group || '';
+            for (const p of (group.players || [])) {
+                const fmt = config.playerFormat
+                    ? config.playerFormat(p.name, p.stats, p.labels, groupName)
+                    : `${sanitizeText(p.name)}: ${p.stats.slice(0, 3).join(', ')}`;
+                playerLines.push(fmt);
+            }
+        }
+        if (playerLines.length > 0) {
+            // Limit to 3 total
+            playerLines = playerLines.slice(0, 3);
+            html += `<div class="espn-top-players">`;
+            html += `<div class="espn-players-header">${sanitizeText(teamData.abbreviation || teamData.name)}</div>`;
+            for (const line of playerLines) {
+                html += `<div class="espn-player-line">${line}</div>`;
+            }
+            html += `</div>`;
+        }
+    }
+
+    return html;
+}
+
 function renderSeasonScheduleList(container, team, events, locale) {
     const now = new Date();
     let html = '';
@@ -1449,7 +1616,12 @@ function renderSeasonScheduleList(container, team, events, locale) {
                 const won = isHome ? homeScore > awayScore : awayScore > homeScore;
                 const draw = homeScore === awayScore;
                 const resultClass = draw ? 'result-draw' : (won ? 'result-win' : 'result-loss');
-                pastHtml += `<div class="schedule-item past ${resultClass} clickable-stat" data-event-id="${sanitizeAttr(eventId)}" data-home="${sanitizeAttr(ev.strHomeTeam || '')}" data-away="${sanitizeAttr(ev.strAwayTeam || '')}" data-video="${sanitizeAttr(ev.strVideo || '')}" data-thumb="${sanitizeAttr(ev.strThumb || '')}">`;
+                const isSoccer = (ev.strSport || '').toLowerCase() === 'soccer';
+                const hasVideo = !!ev.strVideo;
+                const hasEspn = !!ESPN_LEAGUE_MAP[team.leagueId];
+                const isClickable = isSoccer || hasVideo || hasEspn;
+                const clickClass = isClickable ? ' clickable-stat' : '';
+                pastHtml += `<div class="schedule-item past ${resultClass}${clickClass}" data-event-id="${sanitizeAttr(eventId)}" data-home="${sanitizeAttr(ev.strHomeTeam || '')}" data-away="${sanitizeAttr(ev.strAwayTeam || '')}" data-video="${sanitizeAttr(ev.strVideo || '')}" data-thumb="${sanitizeAttr(ev.strThumb || '')}" data-date="${sanitizeAttr(ev.dateEvent || '')}">`;
                 pastHtml += `<div><span class="schedule-opponent">${prefix} ${sanitizeText(opponent)}</span></div>`;
                 pastHtml += `<span><span class="result-score">${homeScore} - ${awayScore}</span> <span class="schedule-date">${dateStr}</span></span>`;
             } else {
@@ -1493,94 +1665,120 @@ function renderSeasonScheduleList(container, team, events, locale) {
         }
     }
 
-    // Click handler for past games — show match stats
+    // Click handler for past games — show match stats and/or highlights
     container.querySelectorAll('.clickable-stat').forEach(item => {
         item.addEventListener('click', async () => {
             const eventId = item.dataset.eventId;
             if (!eventId) return;
 
-            // Toggle: if stats already shown, collapse
+            // Toggle: if panel already shown, collapse
             const existing = item.nextElementSibling;
             if (existing && existing.classList.contains('match-stats')) {
                 existing.remove();
                 return;
             }
 
-            // Remove any other open stats panels in this container
+            // Remove any other open panels in this container
             container.querySelectorAll('.match-stats').forEach(el => el.remove());
 
             const statsDiv = document.createElement('div');
             statsDiv.className = 'match-stats';
-            statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('loading')}</p>`;
             item.after(statsDiv);
 
-            try {
-                const data = await api.getEventStats(eventId);
-                const stats = data.eventstats || [];
-                if (stats.length === 0) {
-                    statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
-                    return;
-                }
+            const videoUrl = item.dataset.video;
+            const thumbUrl = item.dataset.thumb;
 
-                const homeName = item.dataset.home;
-                const awayName = item.dataset.away;
-                const SHOW_STATS = ['Shots on Goal', 'Total Shots', 'Ball Possession', 'Corner Kicks', 'Fouls', 'Yellow Cards', 'Red Cards', 'Offsides', 'Goalkeeper Saves', 'Total passes'];
-                const filtered = stats.filter(s => SHOW_STATS.includes(s.strStat));
-
-                if (filtered.length === 0) {
-                    statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
-                    return;
+            // Build highlight HTML
+            let highlightHtml = '';
+            if (videoUrl) {
+                highlightHtml += `<a class="highlight-card" href="${sanitizeAttr(videoUrl)}" target="_blank" rel="noopener">`;
+                if (thumbUrl) {
+                    highlightHtml += `<img class="highlight-thumb" src="${sanitizeAttr(thumbUrl)}" alt="Highlights" loading="lazy" onerror="this.style.display='none'">`;
                 }
-
-                let rows = `<div class="match-stats-header"><span>${sanitizeText(homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(awayName)}</span></div>`;
-                for (const s of filtered) {
-                    const homeVal = parseFloat(s.intHome) || 0;
-                    const awayVal = parseFloat(s.intAway) || 0;
-                    const total = homeVal + awayVal || 1;
-                    const homePct = (homeVal / total) * 100;
-                    const awayPct = (awayVal / total) * 100;
-                    const homeDisplay = s.strStat === 'Ball Possession' ? s.intHome + '%' : s.intHome;
-                    const awayDisplay = s.strStat === 'Ball Possession' ? s.intAway + '%' : s.intAway;
-
-                    rows += `<div class="stat-row">
-                        <span class="stat-value stat-value-home">${homeDisplay}</span>
-                        <div class="stat-center">
-                            <div class="stat-bar">
-                                <div class="stat-bar-home" style="width:${homePct}%"></div>
-                                <div class="stat-bar-away" style="width:${awayPct}%"></div>
-                            </div>
-                            <span class="stat-name">${sanitizeText(s.strStat)}</span>
-                        </div>
-                        <span class="stat-value stat-value-away">${awayDisplay}</span>
-                    </div>`;
-                }
-                // Add video highlight thumbnail if available
-                const videoUrl = item.dataset.video;
-                const thumbUrl = item.dataset.thumb;
-                if (videoUrl) {
-                    rows += `<a class="highlight-card" href="${sanitizeAttr(videoUrl)}" target="_blank" rel="noopener">`;
-                    if (thumbUrl) {
-                        rows += `<img class="highlight-thumb" src="${sanitizeAttr(thumbUrl)}" alt="Highlights" loading="lazy" onerror="this.style.display='none'">`;
-                    }
-                    rows += `<span class="highlight-label">▶ ${t('watchHighlights')}</span>`;
-                    rows += `</a>`;
-                }
-
-                statsDiv.innerHTML = rows;
-            } catch (err) {
-                // Even if stats fail, still show highlight if available
-                const videoUrl = item.dataset.video;
-                const thumbUrl = item.dataset.thumb;
-                let fallback = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('noStatsAvailable')}</p>`;
-                if (videoUrl) {
-                    fallback += `<a class="highlight-card" href="${sanitizeAttr(videoUrl)}" target="_blank" rel="noopener">`;
-                    if (thumbUrl) {
-                        fallback += `<img class="highlight-thumb" src="${sanitizeAttr(thumbUrl)}" alt="Highlights" loading="lazy" onerror="this.style.display='none'">`;
-                    }
-                    fallback += `<span class="highlight-label">▶ ${t('watchHighlights')}</span></a>`;
-                }
-                statsDiv.innerHTML = fallback;
+                highlightHtml += `<span class="highlight-label">▶ ${t('watchHighlights')}</span></a>`;
             }
+
+            // Check if this is a soccer game (stats available)
+            const homeName = item.dataset.home || '';
+            const awayName = item.dataset.away || '';
+            // Determine sport from the team data or parent context
+            const isSoccerLeague = ['Soccer', 'soccer'].some(s =>
+                (team.sport || '').toLowerCase().includes('soccer') ||
+                (team.league || '').includes('Premier') ||
+                (team.league || '').includes('Liga') ||
+                (team.league || '').includes('Serie') ||
+                (team.league || '').includes('Bundesliga') ||
+                (team.league || '').includes('Champions') ||
+                (team.league || '').includes('MLS') ||
+                (team.league || '').includes('NWSL') ||
+                (team.league || '').includes('World Cup')
+            );
+
+            let content = '';
+
+            // Determine if this is an ESPN-supported US sport
+            const espnMapping = ESPN_LEAGUE_MAP[team.leagueId];
+            const isEspnSport = !!espnMapping && !isSoccerLeague;
+
+            if (isSoccerLeague) {
+                // Fetch TheSportsDB stats for soccer
+                statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('loading')}</p>`;
+                try {
+                    const data = await api.getEventStats(eventId);
+                    const stats = data.eventstats || [];
+                    const SHOW_STATS = ['Shots on Goal', 'Total Shots', 'Ball Possession', 'Corner Kicks', 'Fouls', 'Yellow Cards', 'Red Cards', 'Offsides', 'Goalkeeper Saves', 'Total passes'];
+                    const filtered = stats.filter(s => SHOW_STATS.includes(s.strStat));
+
+                    if (filtered.length > 0) {
+                        content += `<div class="match-stats-header"><span>${sanitizeText(homeName)}</span><span>${t('matchStats')}</span><span>${sanitizeText(awayName)}</span></div>`;
+                        for (const s of filtered) {
+                            const homeVal = parseFloat(s.intHome) || 0;
+                            const awayVal = parseFloat(s.intAway) || 0;
+                            const total = homeVal + awayVal || 1;
+                            const homePct = (homeVal / total) * 100;
+                            const awayPct = (awayVal / total) * 100;
+                            const homeDisplay = s.strStat === 'Ball Possession' ? s.intHome + '%' : s.intHome;
+                            const awayDisplay = s.strStat === 'Ball Possession' ? s.intAway + '%' : s.intAway;
+                            content += `<div class="stat-row">
+                                <span class="stat-value stat-value-home">${homeDisplay}</span>
+                                <div class="stat-center">
+                                    <div class="stat-bar">
+                                        <div class="stat-bar-home" style="width:${homePct}%"></div>
+                                        <div class="stat-bar-away" style="width:${awayPct}%"></div>
+                                    </div>
+                                    <span class="stat-name">${sanitizeText(s.strStat)}</span>
+                                </div>
+                                <span class="stat-value stat-value-away">${awayDisplay}</span>
+                            </div>`;
+                        }
+                    }
+                } catch (err) { /* stats fetch failed, continue with highlights */ }
+            } else if (isEspnSport) {
+                // Fetch ESPN box score for US sports (NBA, MLB, NHL, NFL)
+                const gameDate = item.dataset.date || '';
+                if (gameDate && PROXY_URL) {
+                    statsDiv.innerHTML = `<p class="text-muted" style="font-size:0.8rem;padding:0.5rem 0;">${t('loading')}</p>`;
+                    try {
+                        const boxData = await api.getEspnBoxScore(
+                            espnMapping.sport, espnMapping.league,
+                            homeName, awayName, gameDate
+                        );
+                        if (boxData && boxData.teams && boxData.teams.length >= 2) {
+                            content += renderEspnBoxScore(boxData, homeName, awayName, espnMapping.league);
+                        }
+                    } catch (err) { /* ESPN fetch failed, continue with highlights */ }
+                }
+            }
+
+            // Add highlight thumbnail
+            content += highlightHtml;
+
+            if (!content) {
+                statsDiv.remove();
+                return;
+            }
+
+            statsDiv.innerHTML = content;
         });
     });
 }
