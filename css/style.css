@@ -2050,9 +2050,15 @@ body.layout-locked .section-controls {
 /* Season schedule divider */
 /* Injury list */
 .injury-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 1rem;
+}
+
+@media (max-width: 600px) {
+    .injury-list {
+        grid-template-columns: 1fr;
+    }
 }
 
 .injury-item {
