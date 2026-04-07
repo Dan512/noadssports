@@ -768,13 +768,18 @@ function renderTabBar() {
         }).join('') + '<button class="tab-edit-btn" id="tab-edit-btn" title="Edit tabs">&#9998;</button>';
 
         tabBar.querySelectorAll('.tab-pill').forEach(btn => {
-            btn.addEventListener('click', () => {
-                setActiveTab(btn.dataset.tabId);
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tabId = btn.dataset.tabId;
+                setActiveTab(tabId);
+                // Re-render everything for the new tab
                 renderTabBar();
                 renderTeamCards();
+                renderHeadlinesRestore();
+                // Fetch data for visible teams
                 const teams = loadFollowedTeams();
                 const allTabs = loadTabs();
-                const active = allTabs.find(t => t.id === btn.dataset.tabId) || allTabs[0];
+                const active = allTabs.find(t => t.id === tabId) || allTabs[0];
                 let visibleTeams = teams;
                 if (active && !active.teams.includes('all')) {
                     const allowedKeys = new Set(active.teams);
@@ -782,7 +787,6 @@ function renderTabBar() {
                 }
                 fetchAllTeamData(visibleTeams);
                 loadHeadlines();
-                renderHeadlinesRestore();
             });
         });
 
@@ -1364,13 +1368,12 @@ function renderSeasonScheduleList(container, team, events, locale) {
 
     container.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
 
-    // Scroll to the divider (current position) if there are past games
+    // Scroll the schedule container (not the page) so the divider is visible
     if (totalPast > 0) {
         const divider = container.querySelector('.season-divider');
         if (divider) {
-            // Scroll the schedule list so divider is near top
             setTimeout(() => {
-                divider.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                container.scrollTop = divider.offsetTop - container.offsetTop - 20;
             }, 100);
         }
     }
