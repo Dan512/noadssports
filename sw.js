@@ -69,9 +69,30 @@ self.addEventListener('push', (event) => {
     }
 
     const title = data.title || 'NoAdsSports';
+
+    // Use team badge if available, otherwise sport-specific icon, otherwise default
+    const SPORT_ICONS = {
+        'American Football': '/img/notif/football.png',
+        'Basketball': '/img/notif/basketball.png',
+        'Baseball': '/img/notif/baseball.png',
+        'Ice Hockey': '/img/notif/hockey.png',
+        'Soccer': '/img/notif/soccer.png',
+    };
+
+    let icon = '/img/notif/default.png';
+    if (data.badge) {
+        // Use team badge — convert TheSportsDB URL to local path
+        const teamId = data.badge.match(/\/(\d+)\.png/)?.[1];
+        if (teamId) icon = `/img/teams/${teamId}.png`;
+        else icon = data.badge; // Use as-is if not a standard format
+    } else if (data.sport && SPORT_ICONS[data.sport]) {
+        icon = SPORT_ICONS[data.sport];
+    }
+
     const options = {
         body: data.body || '',
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">\uD83C\uDFC8</text></svg>',
+        icon: icon,
+        badge: '/img/notif/badge.png',
         tag: data.type || 'general',
         renotify: true,
         data: data
