@@ -666,6 +666,8 @@ function renderDashboard() {
         renderTeamCards();
         renderHeadlinesRestore();
         fetchAllTeamData(teams);
+        // Check livescores for live game overlays
+        checkLiveGames(teams);
     }
 }
 
@@ -938,6 +940,55 @@ teamCardsContainer.addEventListener('click', (e) => {
 const teamDataCache = new Map(); // teamKey -> { data, timestamp, hasLiveGame }
 const CACHE_TTL_LIVE = 120000;     // 2 min for teams with a live game
 const CACHE_TTL_STATIC = 3600000;  // 1 hour for teams with no live game
+
+// Check livescores and update cards with live game data
+async function checkLiveGames(teams) {
+    if (!PROXY_URL) return;
+    try {
+        const data = await api.getLivescores();
+        const livescores = data.livescore || [];
+        if (!Array.isArray(livescores) || livescores.length === 0) return;
+
+        for (const team of teams) {
+            const teamKey = `${team.source}:${team.id}`;
+            const cardData = document.getElementById(`card-data-${teamKey}`);
+            if (!cardData) continue;
+
+            // Find a live game for this team
+            const liveGame = livescores.find(g => {
+                const s = (g.strStatus || '').toLowerCase();
+                const isActive = s && s !== 'ft' && s !== 'ns' && s !== 'not started' && s !== 'match finished' && s !== '';
+                if (!isActive) return false;
+                return String(g.idHomeTeam) === String(team.id) || String(g.idAwayTeam) === String(team.id);
+            });
+
+            if (liveGame) {
+                const isHome = String(liveGame.idHomeTeam) === String(team.id);
+                const opponent = isHome ? liveGame.strAwayTeam : liveGame.strHomeTeam;
+                const prefix = isHome ? t('vs') : t('at');
+
+                // Update the card's "Next" section with live data
+                const existingNext = cardData.querySelector('.team-card-next, .team-card-live');
+                const liveHtml = `<div class="team-card-live">
+                    <span class="live-badge">LIVE</span>
+                    <span class="live-matchup">${prefix} ${sanitizeText(opponent)}</span>
+                    <span class="live-score">${sanitizeText(liveGame.strHomeTeam)} ${liveGame.intHomeScore || 0} - ${liveGame.intAwayScore || 0} ${sanitizeText(liveGame.strAwayTeam)}</span>
+                    <span class="live-status">${sanitizeText(liveGame.strStatus || '')}</span>
+                </div>`;
+
+                if (existingNext) {
+                    existingNext.outerHTML = liveHtml;
+                }
+
+                // Also update cache to indicate live game
+                const cached = teamDataCache.get(teamKey);
+                if (cached) cached.hasLiveGame = true;
+            }
+        }
+    } catch (err) {
+        // Silently fail — livescore check is supplemental
+    }
+}
 
 function fetchAllTeamData(teams, forceRefresh) {
     for (const team of teams) {
@@ -2725,7 +2776,7 @@ function startPolling() {
 
     const teams = loadFollowedTeams();
     if (teams.length > 0) {
-        teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
+        teamDataInterval = setInterval(() => { const t = loadFollowedTeams(); fetchAllTeamData(t); checkLiveGames(t); }, 120000);
     }
 
     headlinesInterval = setInterval(loadHeadlines, 600000);
@@ -2748,7 +2799,7 @@ function handleVisibilityChange() {
         const teams = loadFollowedTeams();
         if (teams.length > 0) {
             fetchAllTeamData(teams);
-            teamDataInterval = setInterval(() => fetchAllTeamData(loadFollowedTeams()), 120000);
+            teamDataInterval = setInterval(() => { const t = loadFollowedTeams(); fetchAllTeamData(t); checkLiveGames(t); }, 120000);
         }
         loadHeadlines();
         headlinesInterval = setInterval(loadHeadlines, 600000);
