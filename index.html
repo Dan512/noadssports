@@ -43,10 +43,6 @@
 
         <!-- Empty state (shown when no teams) -->
         <div id="empty-state" class="empty-state">
-            <div id="headlines-box" class="headlines-box">
-                <h2>Headlines</h2>
-                <p class="text-muted">Sports headlines will appear here once an API is connected.</p>
-            </div>
             <button id="add-team-btn" class="add-team-btn">+ Add a Team</button>
             <div class="league-quick-picks">
                 <h3>Quick Browse</h3>
@@ -60,6 +56,10 @@
                     <button class="league-btn" data-league-id="football" data-source="ncaa" data-sport="Football">NCAA FB</button>
                     <button class="league-btn" data-league-id="basketball-men" data-source="ncaa" data-sport="Basketball">NCAA BB</button>
                 </div>
+            </div>
+            <div id="headlines-box" class="headlines-box">
+                <h3>Headlines</h3>
+                <p class="text-muted">Loading headlines...</p>
             </div>
         </div>
 
