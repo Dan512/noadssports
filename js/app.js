@@ -200,8 +200,8 @@ const api = (() => {
             if (teamId) params.team = teamId;
             return fetchJSON(`${PROXY_URL}/tsdb/season?${new URLSearchParams(params)}`);
         },
-        getEspnTeamRecord(sport, league, espnId) {
-            return fetchJSON(`${PROXY_URL}/espn/team?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&id=${encodeURIComponent(espnId)}`);
+        getEspnTeamRecord(sport, league, teamName) {
+            return fetchJSON(`${PROXY_URL}/espn/team?sport=${encodeURIComponent(sport)}&league=${encodeURIComponent(league)}&name=${encodeURIComponent(teamName)}`);
         },
     };
 })();
@@ -1181,8 +1181,8 @@ function buildExpandedContent(expandedEl, team, data) {
 
     expandedEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
 
-    // --- Async: fetch ESPN record ---
-    if (team.espnId && espnMapping) {
+    // --- Async: fetch ESPN record (uses team name, no ESPN ID needed) ---
+    if (espnMapping) {
         fetchEspnRecord(team, espnMapping);
     }
 
@@ -1194,28 +1194,19 @@ function fetchEspnRecord(team, espnMapping) {
     const container = document.getElementById(`espn-record-${team.source}-${team.id}`);
     if (!container) return;
 
-    api.getEspnTeamRecord(espnMapping.sport, espnMapping.league, team.espnId)
+    api.getEspnTeamRecord(espnMapping.sport, espnMapping.league, team.name)
         .then(espnData => {
-            if (!espnData || !espnData.team) {
+            if (!espnData || espnData.error || !espnData.records || espnData.records.length === 0) {
                 container.remove();
                 return;
             }
-            const teamData = espnData.team;
-            const record = teamData.record;
-            const standingSummary = teamData.standingSummary || '';
-
-            if (!record || !record.items || record.items.length === 0) {
-                container.remove();
-                return;
-            }
+            const standingSummary = espnData.standing || '';
+            const records = espnData.records;
 
             // Find overall record
-            const overall = record.items.find(r => r.type === 'total') || record.items[0];
-            const stats = overall.stats || [];
-            const getStat = (name) => {
-                const s = stats.find(st => st.name === name);
-                return s ? s.value : null;
-            };
+            const overall = records.find(r => r.type === 'total') || records[0];
+            const stats = overall.stats || {};
+            const getStat = (name) => stats[name] !== undefined ? stats[name] : null;
 
             const wins = getStat('wins');
             const losses = getStat('losses');
@@ -1236,8 +1227,8 @@ function fetchEspnRecord(team, espnMapping) {
             if (winPct !== null) pctStr = ` (.${String(Math.round(winPct * 1000)).padStart(3, '0')})`;
 
             // Home/away records
-            const homeRec = record.items.find(r => r.type === 'home');
-            const awayRec = record.items.find(r => r.type === 'road' || r.type === 'away');
+            const homeRec = records.find(r => r.type === 'home');
+            const awayRec = records.find(r => r.type === 'road' || r.type === 'away');
             let homeAwayStr = '';
             if (homeRec) {
                 homeAwayStr = homeRec.summary || '';
