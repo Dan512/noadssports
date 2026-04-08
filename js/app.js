@@ -1031,8 +1031,15 @@ function applyTvData(teams, tvEvents) {
 
         // Find TV events matching this team
         const teamName = team.name;
+        const teamSport = (team.sport || '').toLowerCase();
         const channels = tvEvents
-            .filter(e => (e.strEvent || '').includes(teamName))
+            .filter(e => {
+                if (!(e.strEvent || '').includes(teamName)) return false;
+                // Also match sport to avoid cross-sport false positives
+                const evSport = (e.strSport || '').toLowerCase();
+                if (evSport && teamSport && evSport !== teamSport) return false;
+                return true;
+            })
             .map(e => e.strChannel)
             .filter(Boolean);
 
