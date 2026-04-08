@@ -106,17 +106,23 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
+    // Build URL with team key hash so the app can scroll to the right card
+    const data = event.notification.data || {};
+    const teamKey = data.teamKey || '';
+    const url = teamKey ? `/?team=${encodeURIComponent(teamKey)}` : '/';
+
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then(clients => {
                 // Focus an existing tab if one is open
                 for (const client of clients) {
                     if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+                        client.navigate(url);
                         return client.focus();
                     }
                 }
                 // Otherwise open a new tab
-                return self.clients.openWindow('/');
+                return self.clients.openWindow(url);
             })
     );
 });

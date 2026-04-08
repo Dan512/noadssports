@@ -666,8 +666,8 @@ function renderDashboard() {
         renderTeamCards();
         renderHeadlinesRestore();
         fetchAllTeamData(teams);
-        // Check livescores for live game overlays
-        checkLiveGames(teams);
+        // Check livescores after a short delay so it runs AFTER fetchAllTeamData renders
+        setTimeout(() => checkLiveGames(teams), 2000);
     }
 }
 
@@ -3259,6 +3259,26 @@ loadHeadlines();
 startPolling();
 registerServiceWorker();
 renderPrivacyContent();
+
+// Handle notification click — scroll to team card
+(function handleNotificationNav() {
+    const params = new URLSearchParams(window.location.search);
+    const teamKey = params.get('team');
+    if (teamKey) {
+        // Clean up URL
+        history.replaceState(null, '', '/');
+        // Wait for cards to render, then scroll to the team
+        setTimeout(() => {
+            const card = document.querySelector(`.team-card[data-team-key="${CSS.escape(teamKey)}"]`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Flash highlight
+                card.style.outline = '2px solid var(--accent)';
+                setTimeout(() => { card.style.outline = ''; }, 3000);
+            }
+        }, 1500);
+    }
+})();
 
 // --- Layout Lock (simplified — no sports-view lock button in V1 dashboard) ---
 
