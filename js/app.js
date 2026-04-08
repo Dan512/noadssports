@@ -657,6 +657,8 @@ function renderDashboard() {
         addTeamFab.hidden = true;
         emptyState.hidden = false;
         tabBar.hidden = true;
+        tabBar.innerHTML = '';
+        localStorage.removeItem('expandedCard');
         if (header) header.classList.remove('compact');
         if (settingsToggle) settingsToggle.hidden = true;
         if (feedbackToggle) feedbackToggle.hidden = true;
