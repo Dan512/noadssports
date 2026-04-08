@@ -564,6 +564,11 @@ html.font-large {
     font-size: 19px;
 }
 
+.setting-indent {
+    padding-left: 1.25rem !important;
+    font-size: 0.8rem !important;
+}
+
 .settings-revert-btn {
     margin-top: 0.5rem;
     padding: 0.4rem 0.75rem;

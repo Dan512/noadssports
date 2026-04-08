@@ -65,14 +65,20 @@ function addFollowedTeam(team) {
 
 function removeFollowedTeam(teamId, source) {
     let teams = loadFollowedTeams();
-    teams = teams.filter(t => !(t.id === teamId && t.source === source));
+    teams = teams.filter(t => !(String(t.id) === String(teamId) && t.source === source));
     saveFollowedTeams(teams);
     // Also remove from all tabs
-    const tabs = loadTabs();
+    let tabs = loadTabs();
     for (const tab of tabs) {
         tab.teams = tab.teams.filter(tid => tid !== `${source}:${teamId}`);
     }
+    // Auto-remove empty non-main tabs
+    tabs = tabs.filter(tab => tab.id === 'main' || (tab.teams && tab.teams.length > 0));
     saveTabs(tabs);
+    // Switch to main if active tab was removed
+    if (!tabs.find(t => t.id === getActiveTab())) {
+        setActiveTab('main');
+    }
     // Also remove notification prefs
     removeNotificationPrefs(teamId, source);
 }
@@ -2946,8 +2952,23 @@ function applySettings() {
     popover.querySelectorAll('input[data-setting]').forEach(cb => {
         cb.addEventListener('change', () => {
             setSettingBool(cb.dataset.setting, cb.checked);
+
+            // Linked settings: headlines and news from all sports
+            if (cb.dataset.setting === 'showHeadlines' && !cb.checked) {
+                // Hiding headlines → also uncheck show all news
+                setSettingBool('showAllNews', false);
+                const allNewsCb = popover.querySelector('input[data-setting="showAllNews"]');
+                if (allNewsCb) allNewsCb.checked = false;
+            }
+            if (cb.dataset.setting === 'showAllNews' && cb.checked) {
+                // Enabling all news → also check show headlines
+                setSettingBool('showHeadlines', true);
+                const headlinesCb = popover.querySelector('input[data-setting="showHeadlines"]');
+                if (headlinesCb) headlinesCb.checked = true;
+            }
+
             applySettings();
-            if (cb.dataset.setting === 'showAllNews') loadHeadlines();
+            if (cb.dataset.setting === 'showAllNews' || cb.dataset.setting === 'showHeadlines') loadHeadlines();
             if (cb.dataset.setting === 'showWhereToWatch') {
                 renderDashboard(); // Re-render to show/hide WTW links on cards
             }
