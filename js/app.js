@@ -562,10 +562,10 @@ const STREAMING_SERVICES = [
     },
     {
         name: 'Sling TV',
-        price: 'From $40/mo',
+        price: 'From $4.99/day',
         sports: ['NFL', 'NBA', 'MLB', 'NHL', 'NCAA', 'EPL'],
         url: 'https://www.sling.com/',  // TODO: replace with affiliate link
-        description: 'ESPN, TNT, Fox Sports, NFL Network, NBC Sports',
+        description: '$4.99 day pass or from $40/mo. ESPN, TNT, Fox Sports, NFL Network',
     },
     {
         name: 'YouTube TV',
@@ -913,7 +913,8 @@ teamCardsContainer.addEventListener('click', (e) => {
     const wtwLink = e.target.closest('.wtw-link');
     if (wtwLink) {
         e.stopPropagation();
-        openWhereToWatch(wtwLink.dataset.sport, wtwLink);
+        const channels = wtwLink.dataset.channels ? JSON.parse(wtwLink.dataset.channels) : [];
+        openWhereToWatch(wtwLink.dataset.sport, wtwLink, channels);
     }
 });
 
@@ -1028,9 +1029,6 @@ function applyTvData(teams, tvEvents) {
         const cardData = document.getElementById(`card-data-${teamKey}`);
         if (!cardData) continue;
 
-        // Skip if channel already shown
-        if (cardData.querySelector('.team-card-channel')) continue;
-
         // Find TV events matching this team
         const teamName = team.name;
         const channels = tvEvents
@@ -1038,11 +1036,18 @@ function applyTvData(teams, tvEvents) {
             .map(e => e.strChannel)
             .filter(Boolean);
 
-        // Deduplicate and pick the main channel (first one, usually the biggest network)
         const uniqueChannels = [...new Set(channels)];
         if (uniqueChannels.length === 0) continue;
 
-        // Insert after venue or after "Next:" line
+        // Store channels on the wtw-link so the popup can use them
+        const wtwLink = cardData.querySelector('.wtw-link');
+        if (wtwLink) {
+            wtwLink.dataset.channels = JSON.stringify(uniqueChannels.slice(0, 3));
+            continue;
+        }
+
+        // If no wtw-link (Where to Watch disabled), show channel directly
+        if (cardData.querySelector('.team-card-channel')) continue;
         const venue = cardData.querySelector('.team-card-venue');
         const next = cardData.querySelector('.team-card-next');
         const insertAfter = venue || next;
@@ -1317,16 +1322,15 @@ function renderTeamCardData(cardEl, team, data) {
         if (nextEvent.strVenue) {
             html += `<p class="team-card-venue">${sanitizeText(nextEvent.strVenue)}</p>`;
         }
-        // TV channel (if available)
-        if (nextEvent.strChannel) {
-            html += `<p class="team-card-channel">📺 ${sanitizeText(nextEvent.strChannel)}</p>`;
-        }
-        // Where to watch link
+        // Where to watch link (includes broadcast channel if available)
         if (getSettingsBool('showWhereToWatch')) {
             const sportTag = LEAGUE_TO_SPORT_TAG[team.league] || LEAGUE_TO_SPORT_TAG[team.sport] || '';
             if (sportTag && STREAMING_SERVICES.some(svc => svc.sports.includes(sportTag))) {
                 html += `<span class="wtw-link" data-sport="${sanitizeAttr(sportTag)}">📺 ${t('whereToWatch')}</span>`;
             }
+        } else if (nextEvent.strChannel) {
+            // If Where to Watch is disabled, still show the channel
+            html += `<p class="team-card-channel">📺 ${sanitizeText(nextEvent.strChannel)}</p>`;
         }
         // Head-to-Head link
         const h2hHome = nextEvent.strHomeTeam || '';
@@ -2627,20 +2631,31 @@ const ESPN_LEAGUE_MAP = {
 // Leagues that use single-year seasons (e.g. "2026" not "2025-2026")
 const SINGLE_YEAR_SEASON_LEAGUES = ['4424', '4346', '4516']; // MLB, MLS, WNBA
 
-function openWhereToWatch(sportTag, anchorEl) {
+function openWhereToWatch(sportTag, anchorEl, channels) {
     if (!getSettingsBool('showWhereToWatch')) return;
 
     const popup = document.getElementById('wtw-popup');
     const container = document.getElementById('wtw-popup-services');
     if (!popup || !container) return;
 
-    // Filter services that carry this sport
+    let html = '';
+
+    // Broadcast channels at the top
+    if (channels && channels.length > 0) {
+        html += `<div class="wtw-broadcast">`;
+        html += `<div class="wtw-broadcast-label">Broadcast</div>`;
+        html += channels.map(ch => `<span class="wtw-channel-tag">${sanitizeText(ch)}</span>`).join('');
+        html += `</div>`;
+    }
+
+    // Streaming services
     const relevant = STREAMING_SERVICES.filter(svc => svc.sports.includes(sportTag));
 
-    if (relevant.length === 0) {
-        container.innerHTML = `<p class="text-muted" style="font-size:0.8rem;">No streaming info available for this sport.</p>`;
-    } else {
-        container.innerHTML = relevant.map(svc =>
+    if (relevant.length > 0) {
+        if (channels && channels.length > 0) {
+            html += `<div class="wtw-streaming-label">Streaming</div>`;
+        }
+        html += relevant.map(svc =>
             `<div class="wtw-service">
                 <div class="wtw-service-info">
                     <span class="wtw-service-name">${sanitizeText(svc.name)}</span>
@@ -2650,6 +2665,12 @@ function openWhereToWatch(sportTag, anchorEl) {
             </div>`
         ).join('');
     }
+
+    if (!html) {
+        html = `<p class="text-muted" style="font-size:0.8rem;">No broadcast or streaming info available.</p>`;
+    }
+
+    container.innerHTML = html;
 
     // Translate
     const heading = popup.querySelector('h4');
