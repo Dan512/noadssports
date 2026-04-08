@@ -945,8 +945,16 @@ const CACHE_TTL_STATIC = 3600000;  // 1 hour for teams with no live game
 async function checkLiveGames(teams) {
     if (!PROXY_URL) return;
     try {
-        const data = await api.getLivescores();
-        const livescores = data.livescore || [];
+        // Fetch livescores per league that we have teams for (much smaller than all)
+        const leagueIds = [...new Set(teams.filter(t => t.leagueId).map(t => t.leagueId))];
+        let livescores = [];
+        for (const lid of leagueIds) {
+            try {
+                const data = await api.getLivescores(lid);
+                const games = data.livescore || [];
+                if (Array.isArray(games)) livescores.push(...games);
+            } catch (e) { /* skip failed league */ }
+        }
         if (!Array.isArray(livescores) || livescores.length === 0) return;
 
         for (const team of teams) {
