@@ -874,6 +874,19 @@ function renderTeamCards() {
             renderDashboard();
         });
     });
+
+    // Restore expanded card from localStorage
+    const savedExpanded = localStorage.getItem('expandedCard');
+    if (savedExpanded) {
+        const card = teamCardsContainer.querySelector(`.team-card[data-team-key="${CSS.escape(savedExpanded)}"]`);
+        if (card) {
+            card.classList.add('expanded');
+            const team = loadFollowedTeams().find(t => `${t.source}:${t.id}` === savedExpanded);
+            if (team) {
+                renderExpandedTeamData(card, team, savedExpanded);
+            }
+        }
+    }
 }
 
 // Where to Watch — delegated click handler on team cards
@@ -918,6 +931,7 @@ teamCardsContainer.addEventListener('click', (e) => {
         card.classList.remove('expanded');
         const expandedEl = document.getElementById(`expanded-${teamKey}`);
         if (expandedEl) expandedEl.innerHTML = '';
+        localStorage.removeItem('expandedCard');
     } else {
         // Collapse any other expanded card first
         const currentExpanded = teamCardsContainer.querySelector('.team-card.expanded');
@@ -929,6 +943,7 @@ teamCardsContainer.addEventListener('click', (e) => {
         }
         // Expand this card
         card.classList.add('expanded');
+        localStorage.setItem('expandedCard', teamKey);
         const team = loadFollowedTeams().find(t => `${t.source}:${t.id}` === teamKey);
         if (team) {
             renderExpandedTeamData(card, team, teamKey);
