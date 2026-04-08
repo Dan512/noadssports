@@ -881,16 +881,7 @@ function renderTeamCards() {
         `;
     }).join('');
 
-    // Remove team handlers
-    teamCardsContainer.querySelectorAll('.team-card-remove').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const teamId = btn.dataset.teamId;
-            const source = btn.dataset.source;
-            removeFollowedTeam(teamId, source);
-            renderDashboard();
-        });
-    });
+    // Remove team handlers are delegated below
 
     // Restore expanded card from localStorage
     const savedExpanded = localStorage.getItem('expandedCard');
@@ -921,6 +912,21 @@ teamCardsContainer.addEventListener('click', (e) => {
     if (h2hLink) {
         e.stopPropagation();
         openHeadToHead(h2hLink.dataset.home, h2hLink.dataset.away, h2hLink);
+    }
+});
+
+// Remove team — delegated click handler
+teamCardsContainer.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('.team-card-remove');
+    if (!removeBtn) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const teamId = removeBtn.dataset.teamId;
+    const source = removeBtn.dataset.source;
+    if (confirm('Remove this team from your dashboard?')) {
+        removeFollowedTeam(teamId, source);
+        localStorage.removeItem('expandedCard');
+        renderDashboard();
     }
 });
 

@@ -1543,6 +1543,7 @@ body.layout-locked .section-controls {
 }
 
 .team-card:hover .team-card-actions { opacity: 1; }
+.team-card:only-child .team-card-actions { opacity: 0.5; }
 
 .team-card-remove,
 .team-card-collapse {
