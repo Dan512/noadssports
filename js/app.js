@@ -196,6 +196,9 @@ const api = (() => {
             if (leagueId) params.l = leagueId;
             return fetchJSON(buildUrl('/tsdb/highlights', '/eventshighlights.php', params));
         },
+        getTvSchedule(date, sport) {
+            return fetchJSON(buildUrl('/tsdb/tv', '/eventstv.php', { d: date, s: sport }));
+        },
         getNews() {
             if (!PROXY_URL) return Promise.resolve({ articles: [] });
             const lang = getCurrentLang();
@@ -675,7 +678,7 @@ function renderDashboard() {
         renderHeadlinesRestore();
         fetchAllTeamData(teams);
         // Check livescores after a short delay so it runs AFTER fetchAllTeamData renders
-        setTimeout(() => checkLiveGames(teams), 2000);
+        setTimeout(() => { checkLiveGames(teams); checkTvSchedule(teams); }, 2000);
     }
 }
 
@@ -981,6 +984,76 @@ teamCardsContainer.addEventListener('click', (e) => {
         }
     }
 });
+
+// Check TV schedule and inject channel info into team cards
+const tvCache = { data: null, timestamp: 0 };
+const TV_CACHE_TTL = 3600000; // 1 hour
+
+async function checkTvSchedule(teams) {
+    if (!PROXY_URL) return;
+
+    // Only fetch once per hour
+    if (tvCache.data && Date.now() - tvCache.timestamp < TV_CACHE_TTL) {
+        applyTvData(teams, tvCache.data);
+        return;
+    }
+
+    // Get unique sports from followed teams
+    const SPORT_MAP = {
+        'American Football': 'American Football', 'Basketball': 'Basketball',
+        'Baseball': 'Baseball', 'Ice Hockey': 'Ice Hockey', 'Soccer': 'Soccer',
+    };
+    const sports = [...new Set(teams.map(t => SPORT_MAP[t.sport]).filter(Boolean))];
+    const today = new Date().toISOString().slice(0, 10);
+
+    let allTvEvents = [];
+    for (const sport of sports) {
+        try {
+            const data = await api.getTvSchedule(today, sport);
+            const events = data.tvevents || [];
+            // Only keep US channels
+            const usEvents = events.filter(e => (e.strCountry || '') === 'United States');
+            allTvEvents.push(...usEvents);
+        } catch (e) { /* skip */ }
+    }
+
+    tvCache.data = allTvEvents;
+    tvCache.timestamp = Date.now();
+    applyTvData(teams, allTvEvents);
+}
+
+function applyTvData(teams, tvEvents) {
+    for (const team of teams) {
+        const teamKey = `${team.source}:${team.id}`;
+        const cardData = document.getElementById(`card-data-${teamKey}`);
+        if (!cardData) continue;
+
+        // Skip if channel already shown
+        if (cardData.querySelector('.team-card-channel')) continue;
+
+        // Find TV events matching this team
+        const teamName = team.name;
+        const channels = tvEvents
+            .filter(e => (e.strEvent || '').includes(teamName))
+            .map(e => e.strChannel)
+            .filter(Boolean);
+
+        // Deduplicate and pick the main channel (first one, usually the biggest network)
+        const uniqueChannels = [...new Set(channels)];
+        if (uniqueChannels.length === 0) continue;
+
+        // Insert after venue or after "Next:" line
+        const venue = cardData.querySelector('.team-card-venue');
+        const next = cardData.querySelector('.team-card-next');
+        const insertAfter = venue || next;
+        if (insertAfter) {
+            const channelEl = document.createElement('p');
+            channelEl.className = 'team-card-channel';
+            channelEl.textContent = `📺 ${uniqueChannels.slice(0, 2).join(', ')}`;
+            insertAfter.after(channelEl);
+        }
+    }
+}
 
 // In-memory cache for team data (avoids re-fetching on tab switch)
 const teamDataCache = new Map(); // teamKey -> { data, timestamp, hasLiveGame }
@@ -2717,6 +2790,13 @@ document.addEventListener('click', (e) => {
 });
 
 async function loadHeadlines() {
+    const DISMISS_BTN_HTML = '<button class="headlines-dismiss" onclick="setSettingBool(\'showHeadlines\',false);applySettings();" title="Hide headlines">&times;</button>';
+
+    function setBoxContent(box, content) {
+        const isDashboard = box.id === 'dashboard-headlines';
+        box.innerHTML = (isDashboard ? DISMISS_BTN_HTML : '') + content;
+    }
+
     // Hide/show dashboard headlines based on per-tab preference
     const dashboardBox = document.getElementById('dashboard-headlines');
     if (dashboardBox) {
@@ -2731,7 +2811,7 @@ async function loadHeadlines() {
     if (boxes.length === 0) return;
 
     if (!PROXY_URL) {
-        boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('headlinesProxyNeeded')}</p>`; });
+        boxes.forEach(box => { setBoxContent(box, `<h3>${t('headlines')}</h3><p class="text-muted">${t('headlinesProxyNeeded')}</p>`); });
         return;
     }
 
@@ -2739,7 +2819,7 @@ async function loadHeadlines() {
         const data = await api.getNews();
         const headlines = data.headlines || data.articles || data.items || [];
         if (headlines.length === 0) {
-            boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('noHeadlines')}</p>`; });
+            boxes.forEach(box => { setBoxContent(box, `<h3>${t('headlines')}</h3><p class="text-muted">${t('noHeadlines')}</p>`); });
             return;
         }
 
@@ -2805,7 +2885,7 @@ async function loadHeadlines() {
         }
 
         if (filtered.length === 0) {
-            boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('noMatchingHeadlines')}</p>`; });
+            boxes.forEach(box => { setBoxContent(box, `<h3>${t('headlines')}</h3><p class="text-muted">${t('noMatchingHeadlines')}</p>`); });
             return;
         }
 
@@ -2817,9 +2897,9 @@ async function loadHeadlines() {
             const desc = h.desc && h.desc !== 'null' ? `<span class="headline-desc">${sanitizeText(h.desc)}</span>` : '';
             return `<div class="headline-item">${followedBadge}<div class="headline-content"><a href="${sanitizeAttr(url)}" target="_blank" rel="noopener">${title}</a>${desc}${source}</div></div>`;
         }).join('');
-        boxes.forEach(box => { box.innerHTML = html; });
+        boxes.forEach(box => { setBoxContent(box, html); });
     } catch (err) {
-        boxes.forEach(box => { box.innerHTML = `<h3>${t('headlines')}</h3><p class="text-muted">${t('couldNotLoadHeadlines')}</p>`; });
+        boxes.forEach(box => { setBoxContent(box, `<h3>${t('headlines')}</h3><p class="text-muted">${t('couldNotLoadHeadlines')}</p>`); });
     }
 }
 
