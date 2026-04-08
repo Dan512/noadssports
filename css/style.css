@@ -1254,6 +1254,23 @@ body.layout-locked .section-controls {
     color: var(--loss);
 }
 
+.empty-tab-remove {
+    margin-top: 0.75rem;
+    padding: 0.4rem 1rem;
+    background: none;
+    border: 1px solid var(--loss);
+    border-radius: 6px;
+    color: var(--loss);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.empty-tab-remove:hover {
+    background: var(--loss);
+    color: white;
+}
+
 .headlines-restore {
     display: block;
     margin: 0.75rem auto;

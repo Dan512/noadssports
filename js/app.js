@@ -835,7 +835,24 @@ function renderTeamCards() {
     }
 
     if (visibleTeams.length === 0) {
-        teamCardsContainer.innerHTML = `<p class="text-muted" style="padding:2rem;text-align:center;">${t('noTeamsInTab')}</p>`;
+        const activeTabId = getActiveTab();
+        const removeBtn = activeTabId !== 'main'
+            ? `<br><button class="empty-tab-remove" data-tab-id="${sanitizeAttr(activeTabId)}">${t('deleteTab') || 'Remove Tab'}</button>`
+            : '';
+        teamCardsContainer.innerHTML = `<p class="text-muted" style="padding:2rem;text-align:center;">${t('noTeamsInTab')}${removeBtn}</p>`;
+        const btn = teamCardsContainer.querySelector('.empty-tab-remove');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tabId;
+                const tabs = loadTabs();
+                const tabLabel = (tabs.find(t => t.id === tabId) || {}).label || tabId;
+                if (confirm(`Delete the "${tabLabel}" tab?`)) {
+                    removeTab(tabId);
+                    setActiveTab('main');
+                    location.reload();
+                }
+            });
+        }
         return;
     }
 
@@ -2487,7 +2504,10 @@ function showHeadlinesForTab() {
 }
 
 // Dismiss button
-document.getElementById('headlines-dismiss')?.addEventListener('click', hideHeadlinesForTab);
+document.getElementById('headlines-dismiss')?.addEventListener('click', () => {
+    setSettingBool('showHeadlines', false);
+    applySettings();
+});
 
 // --- Where to Watch ----------------------------------------------------------
 
@@ -2854,6 +2874,13 @@ function applySettings() {
         }
     }
 
+    // Show/hide all headlines
+    const dashboardHeadlines = document.getElementById('dashboard-headlines');
+    const headlinesBox = document.getElementById('headlines-box');
+    const showHeadlines = getSettingsBool('showHeadlines');
+    if (dashboardHeadlines) dashboardHeadlines.style.display = showHeadlines ? '' : 'none';
+    if (headlinesBox) headlinesBox.style.display = showHeadlines ? '' : 'none';
+
     // Show/hide support button — slide FAB down when hidden
     const addFab = document.getElementById('add-team-fab');
     const showSupport = getSettingsBool('showSupportBtn');
@@ -2941,7 +2968,7 @@ function applySettings() {
 
     // Restore defaults
     document.getElementById('settings-revert').addEventListener('click', () => {
-        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showAllNews', 'showWhereToWatch', 'showFeedbackBtn'].forEach(k => {
+        ['showHeader', 'showSupportBtn', 'showThemeToggle', 'showHeadlines', 'showAllNews', 'showWhereToWatch', 'showFeedbackBtn'].forEach(k => {
             localStorage.removeItem('setting_' + k);
         });
         localStorage.removeItem('sectionPrefs');
