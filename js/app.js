@@ -3307,75 +3307,70 @@ function applySettings() {
 (function initFeedback() {
     const feedbackToggle = document.getElementById('feedback-toggle');
     const feedbackPopover = document.getElementById('feedback-popover');
-    const feedbackMessage = document.getElementById('feedback-message');
     const feedbackType = document.getElementById('feedback-type');
     const feedbackSend = document.getElementById('feedback-send');
-    const feedbackStatus = document.getElementById('feedback-status');
+    const feedbackFallback = document.getElementById('feedback-fallback');
+    const feedbackTitle = document.getElementById('feedback-title');
     if (!feedbackToggle || !feedbackPopover) return;
 
-    // Toggle popover
+    // Joined at runtime rather than written into the served HTML, so address
+    // harvesters that only scrape the markup do not pick it up.
+    const FEEDBACK_ADDRESS = ['dan', 'noadsdude.com'].join('@');
+
+    // Subject suffix stays English in every locale so the inbox sorts and filters
+    // consistently regardless of the sender's UI language.
+    const SUBJECT_SUFFIX = { bug: 'Bug', feature: 'Feature request', general: 'General' };
+
+    function buildMailto() {
+        const type = feedbackType ? feedbackType.value : 'general';
+        const subject = `NoAdsSports Feedback: ${SUBJECT_SUFFIX[type] || SUBJECT_SUFFIX.general}`;
+        // Two blank lines first so the cursor lands above the context block.
+        const body = [
+            '',
+            '',
+            '---',
+            `Page: ${window.location.href}`,
+            `Language: ${getCurrentLang()}`,
+        ].join('\r\n');
+        return `mailto:${FEEDBACK_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function refreshFeedbackUI() {
+        if (feedbackSend) {
+            feedbackSend.href = buildMailto();
+            feedbackSend.textContent = t('feedbackOpenEmail');
+        }
+        // Also shown as plain text: a mailto link does nothing on a device with no
+        // mail client configured, and without this that visitor has no way to reach us.
+        if (feedbackFallback) feedbackFallback.textContent = `${t('feedbackFallback')} ${FEEDBACK_ADDRESS}`;
+        if (feedbackTitle) feedbackTitle.textContent = t('feedbackTitle');
+        if (feedbackType && feedbackType.options.length >= 3) {
+            feedbackType.options[0].textContent = t('feedbackTypeBug');
+            feedbackType.options[1].textContent = t('feedbackTypeFeature');
+            feedbackType.options[2].textContent = t('feedbackTypeGeneral');
+        }
+    }
+
     feedbackToggle.addEventListener('click', (e) => {
         e.stopPropagation();
         feedbackPopover.hidden = !feedbackPopover.hidden;
-        if (!feedbackPopover.hidden) {
-            feedbackMessage.value = '';
-            feedbackStatus.textContent = '';
-            setTimeout(() => feedbackMessage.focus(), 100);
-        }
+        if (!feedbackPopover.hidden) refreshFeedbackUI();
     });
 
-    // Close on outside click
+    // Changing the type rewrites the subject line before the link is followed.
+    if (feedbackType) feedbackType.addEventListener('change', refreshFeedbackUI);
+
     document.addEventListener('click', (e) => {
         if (!feedbackPopover.hidden && !feedbackPopover.contains(e.target) && e.target !== feedbackToggle) {
             feedbackPopover.hidden = true;
         }
     });
 
-    // Close on Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !feedbackPopover.hidden) feedbackPopover.hidden = true;
     });
 
-    // Send feedback
-    feedbackSend.addEventListener('click', async () => {
-        const message = feedbackMessage.value.trim();
-        if (!message || message.length < 3) {
-            feedbackStatus.textContent = 'Please enter a message.';
-            feedbackStatus.style.color = 'var(--loss)';
-            return;
-        }
-
-        feedbackSend.disabled = true;
-        feedbackStatus.textContent = 'Sending...';
-        feedbackStatus.style.color = 'var(--text-muted)';
-
-        try {
-            const res = await fetch(`${PROXY_URL}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: feedbackType.value,
-                    message,
-                    page: window.location.href,
-                    lang: getCurrentLang(),
-                }),
-            });
-
-            if (res.ok) {
-                feedbackStatus.textContent = 'Thanks for your feedback!';
-                feedbackStatus.style.color = 'var(--win)';
-                feedbackMessage.value = '';
-                setTimeout(() => { feedbackPopover.hidden = true; }, 1500);
-            } else {
-                feedbackStatus.textContent = 'Failed to send. Try again.';
-                feedbackStatus.style.color = 'var(--loss)';
-            }
-        } catch {
-            feedbackStatus.textContent = 'Failed to send. Try again.';
-            feedbackStatus.style.color = 'var(--loss)';
-        }
-        feedbackSend.disabled = false;
-    });
+    refreshFeedbackUI();
 })();
 
 // --- Translate Static HTML Elements ------------------------------------------
