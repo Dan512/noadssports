@@ -8,7 +8,8 @@ const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/css/style.css',
-    '/js/app.js'
+    '/js/app.js',
+    '/manifest.json'
 ];
 
 // --- Install: cache static assets, skip waiting -----------------------------

@@ -149,7 +149,7 @@ function setActiveTab(tabId) {
 
 // --- API Client (Task 9) ----------------------------------------------------
 
-const PROXY_URL = 'https://sports-proxy-15838356607.us-central1.run.app';
+const PROXY_URL = 'https://api.noadssports.com';
 
 const api = (() => {
     const TSDB_BASE = 'https://www.thesportsdb.com/api/v1/json/3';
@@ -2636,7 +2636,7 @@ const ESPN_LEAGUE_MAP = {
 };
 
 // Leagues that use single-year seasons (e.g. "2026" not "2025-2026")
-const SINGLE_YEAR_SEASON_LEAGUES = ['4424', '4346', '4516']; // MLB, MLS, WNBA
+const SINGLE_YEAR_SEASON_LEAGUES = ['4424', '4346', '4516', '4391']; // MLB, MLS, WNBA, NFL
 
 function openWhereToWatch(sportTag, anchorEl, channels) {
     if (!getSettingsBool('showWhereToWatch')) return;
@@ -3523,7 +3523,7 @@ function renderPrivacyContent() {
 
 // --- Push Notifications ------------------------------------------------------
 
-const PUSH_SERVER_URL = 'https://push-server-15838356607.us-central1.run.app';
+const PUSH_SERVER_URL = 'https://push.noadssports.com';
 
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
@@ -3594,26 +3594,4 @@ async function syncPushSubscription() {
     }
 }
 
-// --- PWA Manifest ------------------------------------------------------------
 
-(function () {
-    const manifest = {
-        name: 'NoAdsSports',
-        short_name: 'Sports',
-        description: 'Scores without the clutter. Follow your teams, get live scores and push notifications — with zero ads.',
-        start_url: '/',
-        display: 'standalone',
-        background_color: '#111827',
-        theme_color: '#111827',
-        icons: [{
-            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏈</text></svg>',
-            sizes: 'any',
-            type: 'image/svg+xml',
-        }],
-    };
-    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = URL.createObjectURL(blob);
-    document.head.appendChild(link);
-})();
