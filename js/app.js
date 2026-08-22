@@ -3418,6 +3418,10 @@ function applySettings() {
     const privacyTitle = document.querySelector('#privacy-panel strong');
     if (privacyTitle) privacyTitle.textContent = t('privacyTitle');
 
+    // League links footer
+    const leagueLinksHeading = document.getElementById('league-links-heading');
+    if (leagueLinksHeading) leagueLinksHeading.textContent = t('scoresByLeague');
+
     // Support button
     const donateBtn = document.getElementById('donate-btn');
     if (donateBtn) donateBtn.textContent = t('supportSite');

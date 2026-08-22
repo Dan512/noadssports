@@ -101,6 +101,31 @@
         <button id="add-team-fab" class="add-team-fab" hidden aria-label="Add a team">+</button>
 
         <button id="privacy-toggle-home" class="privacy-link privacy-link-fixed">Privacy / Cookies</button>
+
+        <!-- Static league pages live at /nfl/, /nba/ and so on. Without real links
+             here they are orphans: people cannot find them and crawlers only reach
+             them through sitemap.xml, which is far weaker than an internal link. -->
+        <nav class="league-links" aria-label="Scores by league">
+            <h2 id="league-links-heading">Scores by league</h2>
+            <ul>
+                <li><a href="/nfl/">NFL</a></li>
+                <li><a href="/nba/">NBA</a></li>
+                <li><a href="/mlb/">MLB</a></li>
+                <li><a href="/nhl/">NHL</a></li>
+                <li><a href="/wnba/">WNBA</a></li>
+                <li><a href="/mls/">MLS</a></li>
+                <li><a href="/nwsl/">NWSL</a></li>
+                <li><a href="/premier-league/">Premier League</a></li>
+                <li><a href="/la-liga/">La Liga</a></li>
+                <li><a href="/serie-a/">Serie A</a></li>
+                <li><a href="/bundesliga/">Bundesliga</a></li>
+                <li><a href="/champions-league/">Champions League</a></li>
+                <li><a href="/liga-mx/">Liga MX</a></li>
+                <li><a href="/college-football/">College Football</a></li>
+                <li><a href="/college-basketball-men/">Men's College Basketball</a></li>
+                <li><a href="/college-basketball-women/">Women's College Basketball</a></li>
+            </ul>
+        </nav>
     </div>
 
     <!-- Add Team Modal -->
