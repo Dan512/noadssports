@@ -2677,7 +2677,9 @@ body.layout-locked .section-controls {
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    padding: 0 1rem 3rem;
+    /* Bottom padding clears the fixed theme toggle and support button, which sit at
+       bottom:1.5rem and are ~40px tall. At 3rem the footer rendered underneath them. */
+    padding: 0 1rem 5.5rem;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: 1.55;
 }

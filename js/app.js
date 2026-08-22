@@ -3497,6 +3497,16 @@ function togglePrivacy() {
 }
 
 document.getElementById('privacy-toggle-home').addEventListener('click', togglePrivacy);
+
+// #privacy deep link. The league landing pages have no privacy panel of their own,
+// so they link here; opening it on arrival is what makes that link honest.
+if (window.location.hash === '#privacy') {
+    const panel = document.getElementById('privacy-panel');
+    if (panel) {
+        panel.hidden = false;
+        history.replaceState(null, '', window.location.pathname);
+    }
+}
 document.getElementById('privacy-close').addEventListener('click', () => {
     document.getElementById('privacy-panel').hidden = true;
 });

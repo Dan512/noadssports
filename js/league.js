@@ -69,3 +69,47 @@
             if (a) a.addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
         });
 })();
+
+// --- Shared controls -------------------------------------------------------
+// The dashboard's settings panel does not exist on these pages, and most of what it
+// controls (headlines, tabs, notifications, where-to-watch) has no meaning here. So
+// rather than duplicate the panel, respect the two preferences that do apply and
+// otherwise stay out of the way.
+(function initLeagueControls() {
+    // Absent means on, matching getSettingsBool in js/app.js.
+    const enabled = (key) => localStorage.getItem('setting_' + key) !== 'false';
+
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle && enabled('showThemeToggle')) {
+        const current = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const paint = () => { toggle.textContent = current() === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'; };
+        paint();
+        toggle.hidden = false;
+        toggle.addEventListener('click', () => {
+            const next = current() === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            // Written so the choice follows the visitor back to the dashboard.
+            localStorage.setItem('theme', next);
+            paint();
+        });
+    }
+
+    const support = document.getElementById('donate-btn');
+    if (support && enabled('showSupportBtn')) support.hidden = false;
+
+    // Opens email directly rather than reproducing the dashboard's type-picker popover.
+    // Subject keeps the same "NoAdsSports Feedback: ..." shape so inbox filters that
+    // work for the app keep working here; the body carries which page it came from.
+    const feedback = document.getElementById('feedback-toggle');
+    if (feedback && enabled('showFeedbackBtn')) {
+        feedback.hidden = false;
+        feedback.addEventListener('click', () => {
+            const address = ['dan', 'noadsdude.com'].join('@');
+            const subject = 'NoAdsSports Feedback: General';
+            const body = ['', '', '---', 'Page: ' + window.location.href].join('\r\n');
+            window.location.href = 'mailto:' + address
+                + '?subject=' + encodeURIComponent(subject)
+                + '&body=' + encodeURIComponent(body);
+        });
+    }
+})();
