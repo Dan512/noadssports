@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>NBA Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/nba/">
+    <meta name="description" content="Live NBA scores and schedules with no ads, no tracking and no cookies. National Basketball Association results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/nba/">
+    <meta property="og:title" content="NBA Scores — NoAdsSports">
+    <meta property="og:description" content="Live NBA scores and schedules with no ads, no tracking and no cookies. National Basketball Association results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="NBA Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live NBA scores and schedules with no ads, no tracking and no cookies. National Basketball Association results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>NBA Scores</h1>
+        <p class="league-blurb">NBA scores and schedules from tip-off through the Finals, updated live. Nothing on the page but basketball.</p>
+
+        <section class="league-section">
+            <h2>Today's NBA Games</h2>
+            <div id="league-games" data-league-id="4387" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your NBA team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>NBA Teams</h2>
+        <ul class="league-team-list">
+          <li>Atlanta Hawks</li>
+          <li>Boston Celtics</li>
+          <li>Brooklyn Nets</li>
+          <li>Charlotte Hornets</li>
+          <li>Chicago Bulls</li>
+          <li>Cleveland Cavaliers</li>
+          <li>Dallas Mavericks</li>
+          <li>Denver Nuggets</li>
+          <li>Detroit Pistons</li>
+          <li>Golden State Warriors</li>
+          <li>Houston Rockets</li>
+          <li>Indiana Pacers</li>
+          <li>Los Angeles Clippers</li>
+          <li>Los Angeles Lakers</li>
+          <li>Memphis Grizzlies</li>
+          <li>Miami Heat</li>
+          <li>Milwaukee Bucks</li>
+          <li>Minnesota Timberwolves</li>
+          <li>New Orleans Pelicans</li>
+          <li>New York Knicks</li>
+          <li>Oklahoma City Thunder</li>
+          <li>Orlando Magic</li>
+          <li>Philadelphia 76ers</li>
+          <li>Phoenix Suns</li>
+          <li>Portland Trail Blazers</li>
+          <li>Sacramento Kings</li>
+          <li>San Antonio Spurs</li>
+          <li>Toronto Raptors</li>
+          <li>Utah Jazz</li>
+          <li>Washington Wizards</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nfl/">NFL</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/nhl/">NHL</a></li>
+          <li><a href="/wnba/">WNBA</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/la-liga/">La Liga</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/bundesliga/">Bundesliga</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>

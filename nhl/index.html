@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>NHL Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/nhl/">
+    <meta name="description" content="Live NHL scores and schedules with no ads, no tracking and no cookies. National Hockey League results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/nhl/">
+    <meta property="og:title" content="NHL Scores — NoAdsSports">
+    <meta property="og:description" content="Live NHL scores and schedules with no ads, no tracking and no cookies. National Hockey League results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="NHL Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live NHL scores and schedules with no ads, no tracking and no cookies. National Hockey League results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>NHL Scores</h1>
+        <p class="league-blurb">NHL scores and schedules, regular season through the Stanley Cup Playoffs. Fast to load, nothing tracking you.</p>
+
+        <section class="league-section">
+            <h2>Today's NHL Games</h2>
+            <div id="league-games" data-league-id="4380" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your NHL team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>NHL Teams</h2>
+        <ul class="league-team-list">
+          <li>Anaheim Ducks</li>
+          <li>Boston Bruins</li>
+          <li>Buffalo Sabres</li>
+          <li>Calgary Flames</li>
+          <li>Carolina Hurricanes</li>
+          <li>Chicago Blackhawks</li>
+          <li>Colorado Avalanche</li>
+          <li>Columbus Blue Jackets</li>
+          <li>Dallas Stars</li>
+          <li>Detroit Red Wings</li>
+          <li>Edmonton Oilers</li>
+          <li>Florida Panthers</li>
+          <li>Los Angeles Kings</li>
+          <li>Minnesota Wild</li>
+          <li>Montreal Canadiens</li>
+          <li>Nashville Predators</li>
+          <li>New Jersey Devils</li>
+          <li>New York Islanders</li>
+          <li>New York Rangers</li>
+          <li>Ottawa Senators</li>
+          <li>Philadelphia Flyers</li>
+          <li>Pittsburgh Penguins</li>
+          <li>San Jose Sharks</li>
+          <li>Seattle Kraken</li>
+          <li>St. Louis Blues</li>
+          <li>Tampa Bay Lightning</li>
+          <li>Toronto Maple Leafs</li>
+          <li>Utah Mammoth</li>
+          <li>Vancouver Canucks</li>
+          <li>Vegas Golden Knights</li>
+          <li>Washington Capitals</li>
+          <li>Winnipeg Jets</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nfl/">NFL</a></li>
+          <li><a href="/nba/">NBA</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/wnba/">WNBA</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/la-liga/">La Liga</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/bundesliga/">Bundesliga</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>Bundesliga Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/bundesliga/">
+    <meta name="description" content="Live Bundesliga scores and schedules with no ads, no tracking and no cookies. Bundesliga results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/bundesliga/">
+    <meta property="og:title" content="Bundesliga Scores — NoAdsSports">
+    <meta property="og:description" content="Live Bundesliga scores and schedules with no ads, no tracking and no cookies. Bundesliga results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Bundesliga Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live Bundesliga scores and schedules with no ads, no tracking and no cookies. Bundesliga results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>Bundesliga Scores</h1>
+        <p class="league-blurb">Bundesliga scores and standings from Germany, all eighteen clubs, no ads and no sign-in.</p>
+
+        <section class="league-section">
+            <h2>Today's Bundesliga Games</h2>
+            <div id="league-games" data-league-id="4331" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your Bundesliga team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>Bundesliga Teams</h2>
+        <ul class="league-team-list">
+          <li>Bayer Leverkusen</li>
+          <li>Bayern Munich</li>
+          <li>Borussia Dortmund</li>
+          <li>Borussia Mönchengladbach</li>
+          <li>Eintracht Frankfurt</li>
+          <li>FC Augsburg</li>
+          <li>FC Heidenheim</li>
+          <li>FC Köln</li>
+          <li>Freiburg</li>
+          <li>Hamburg</li>
+          <li>Hoffenheim</li>
+          <li>Mainz</li>
+          <li>RB Leipzig</li>
+          <li>St Pauli</li>
+          <li>Stuttgart</li>
+          <li>Union Berlin</li>
+          <li>Werder Bremen</li>
+          <li>Wolfsburg</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nfl/">NFL</a></li>
+          <li><a href="/nba/">NBA</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/nhl/">NHL</a></li>
+          <li><a href="/wnba/">WNBA</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/la-liga/">La Liga</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>

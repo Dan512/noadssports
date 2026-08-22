@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>La Liga Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/la-liga/">
+    <meta name="description" content="Live La Liga scores and schedules with no ads, no tracking and no cookies. La Liga results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/la-liga/">
+    <meta property="og:title" content="La Liga Scores — NoAdsSports">
+    <meta property="og:description" content="Live La Liga scores and schedules with no ads, no tracking and no cookies. La Liga results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="La Liga Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live La Liga scores and schedules with no ads, no tracking and no cookies. La Liga results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>La Liga Scores</h1>
+        <p class="league-blurb">La Liga scores and standings from Spain, covering all twenty clubs through the season.</p>
+
+        <section class="league-section">
+            <h2>Today's La Liga Games</h2>
+            <div id="league-games" data-league-id="4335" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your La Liga team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>La Liga Teams</h2>
+        <ul class="league-team-list">
+          <li>Athletic Bilbao</li>
+          <li>Atlético Madrid</li>
+          <li>Barcelona</li>
+          <li>Celta Vigo</li>
+          <li>Deportivo Alavés</li>
+          <li>Elche</li>
+          <li>Espanyol</li>
+          <li>Getafe</li>
+          <li>Girona</li>
+          <li>Levante</li>
+          <li>Mallorca</li>
+          <li>Osasuna</li>
+          <li>Rayo Vallecano</li>
+          <li>Real Betis</li>
+          <li>Real Madrid</li>
+          <li>Real Oviedo</li>
+          <li>Real Sociedad</li>
+          <li>Sevilla</li>
+          <li>Valencia</li>
+          <li>Villarreal</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nfl/">NFL</a></li>
+          <li><a href="/nba/">NBA</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/nhl/">NHL</a></li>
+          <li><a href="/wnba/">WNBA</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/bundesliga/">Bundesliga</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>

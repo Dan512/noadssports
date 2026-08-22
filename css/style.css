@@ -2666,3 +2666,142 @@ body.layout-locked .section-controls {
     }
 
 }
+
+
+/* League landing pages ------------------------------------------------------
+   Standalone static pages at /nfl/, /nba/ and so on. They reuse the app's theme
+   variables but not its layout, so the class names here are scoped with
+   .league-page to keep them clear of the dashboard rules above. */
+
+.league-page {
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0 1rem 3rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.55;
+}
+
+.league-header {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 1.5rem 0 0.5rem;
+}
+
+.league-brand {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.league-brand-tagline {
+    margin: 0.15rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.league-main {
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.league-main h1 {
+    font-size: 1.75rem;
+    margin: 1.25rem 0 0.5rem;
+}
+
+.league-blurb {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem;
+}
+
+.league-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.15rem;
+}
+
+.league-section h2 {
+    font-size: 1.05rem;
+    margin: 0 0 0.75rem;
+    color: var(--text);
+}
+
+.league-section a { color: var(--accent); }
+
+.league-empty {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 0.92rem;
+}
+
+/* Today's games */
+.league-games-list { list-style: none; margin: 0; padding: 0; }
+
+.league-game {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.league-game:last-child { border-bottom: none; }
+.league-teams { flex: 1 1 60%; min-width: 12rem; }
+.league-score { font-variant-numeric: tabular-nums; font-weight: 600; }
+.league-score.is-live { color: var(--live); }
+
+.league-status,
+.league-time {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Team roster. Some of these lists run to 300+ entries, so let them column up. */
+.league-team-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 1.5rem;
+    font-size: 0.92rem;
+}
+
+.league-team-list li {
+    break-inside: avoid;
+    padding: 0.15rem 0;
+    color: var(--text-secondary);
+}
+
+.league-other-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.9rem;
+}
+
+.league-other-list a { font-size: 0.92rem; }
+
+.league-footer {
+    max-width: 780px;
+    margin: 2rem auto 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.league-footer a { color: var(--accent); }
+
+@media (min-width: 640px) {
+    .league-team-list { columns: 3; }
+}
+
+@media (min-width: 900px) {
+    .league-team-list { columns: 4; }
+}

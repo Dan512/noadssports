@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>WNBA Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/wnba/">
+    <meta name="description" content="Live WNBA scores and schedules with no ads, no tracking and no cookies. Women&#39;s National Basketball Association results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/wnba/">
+    <meta property="og:title" content="WNBA Scores — NoAdsSports">
+    <meta property="og:description" content="Live WNBA scores and schedules with no ads, no tracking and no cookies. Women&#39;s National Basketball Association results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="WNBA Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live WNBA scores and schedules with no ads, no tracking and no cookies. Women&#39;s National Basketball Association results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>WNBA Scores</h1>
+        <p class="league-blurb">WNBA scores and schedules for all fifteen teams, including the newest expansion sides. Live updates, no clutter.</p>
+
+        <section class="league-section">
+            <h2>Today's WNBA Games</h2>
+            <div id="league-games" data-league-id="4516" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your WNBA team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>WNBA Teams</h2>
+        <ul class="league-team-list">
+          <li>Atlanta Dream</li>
+          <li>Chicago Sky</li>
+          <li>Connecticut Sun</li>
+          <li>Dallas Wings</li>
+          <li>Golden State Valkyries</li>
+          <li>Indiana Fever</li>
+          <li>Las Vegas Aces</li>
+          <li>Los Angeles Sparks</li>
+          <li>Minnesota Lynx</li>
+          <li>New York Liberty</li>
+          <li>Phoenix Mercury</li>
+          <li>Portland Fire</li>
+          <li>Seattle Storm</li>
+          <li>Toronto Tempo</li>
+          <li>Washington Mystics</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nfl/">NFL</a></li>
+          <li><a href="/nba/">NBA</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/nhl/">NHL</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/la-liga/">La Liga</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/bundesliga/">Bundesliga</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>

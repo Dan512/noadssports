@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Mirror the app's theme choice so a landing page doesn't flash light for a
+      // dark-mode user. Reads the stored preference but never writes it: this page
+      // is not where someone changes their theme.
+      (function(){var t=localStorage.getItem('theme');
+      if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)t='dark';
+      if(t)document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <title>NFL Scores Today &amp; Schedule | NoAdsSports</title>
+    <link rel="canonical" href="https://noadssports.com/nfl/">
+    <meta name="description" content="Live NFL scores and schedules with no ads, no tracking and no cookies. National Football League results updated as games are played.">
+    <link rel="icon" href="/img/notif/default.png">
+    <link rel="apple-touch-icon" href="/img/notif/default.png">
+    <meta name="theme-color" content="#111827">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://noadssports.com/nfl/">
+    <meta property="og:title" content="NFL Scores — NoAdsSports">
+    <meta property="og:description" content="Live NFL scores and schedules with no ads, no tracking and no cookies. National Football League results updated as games are played.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="NFL Scores — NoAdsSports">
+    <meta name="twitter:description" content="Live NFL scores and schedules with no ads, no tracking and no cookies. National Football League results updated as games are played.">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="league-page">
+    <header class="league-header">
+        <a class="league-brand" href="/">NoAdsSports</a>
+        <p class="league-brand-tagline">Scores without the clutter.</p>
+    </header>
+
+    <main class="league-main">
+        <h1>NFL Scores</h1>
+        <p class="league-blurb">Every NFL game, with live scores through the regular season and playoffs. No ads, no autoplay video, no gambling promos between you and the score.</p>
+
+        <section class="league-section">
+            <h2>Today's NFL Games</h2>
+            <div id="league-games" data-league-id="4391" data-source="tsdb">
+                <p class="league-empty">Live scores load here.</p>
+            </div>
+        </section>
+
+        <section class="league-section">
+            <h2>Follow your NFL team</h2>
+            <p>
+                Pick your teams on the <a href="/">NoAdsSports dashboard</a> and get live scores,
+                schedules, standings and optional push notifications. No account, no cookies,
+                nothing tracking you.
+            </p>
+        </section>
+
+      <section class="league-section">
+        <h2>NFL Teams</h2>
+        <ul class="league-team-list">
+          <li>Arizona Cardinals</li>
+          <li>Atlanta Falcons</li>
+          <li>Baltimore Ravens</li>
+          <li>Buffalo Bills</li>
+          <li>Carolina Panthers</li>
+          <li>Chicago Bears</li>
+          <li>Cincinnati Bengals</li>
+          <li>Cleveland Browns</li>
+          <li>Dallas Cowboys</li>
+          <li>Denver Broncos</li>
+          <li>Detroit Lions</li>
+          <li>Green Bay Packers</li>
+          <li>Houston Texans</li>
+          <li>Indianapolis Colts</li>
+          <li>Jacksonville Jaguars</li>
+          <li>Kansas City Chiefs</li>
+          <li>Las Vegas Raiders</li>
+          <li>Los Angeles Chargers</li>
+          <li>Los Angeles Rams</li>
+          <li>Miami Dolphins</li>
+          <li>Minnesota Vikings</li>
+          <li>New England Patriots</li>
+          <li>New Orleans Saints</li>
+          <li>New York Giants</li>
+          <li>New York Jets</li>
+          <li>Philadelphia Eagles</li>
+          <li>Pittsburgh Steelers</li>
+          <li>San Francisco 49ers</li>
+          <li>Seattle Seahawks</li>
+          <li>Tampa Bay Buccaneers</li>
+          <li>Tennessee Titans</li>
+          <li>Washington Commanders</li>
+        </ul>
+      </section>
+
+        <nav class="league-section league-other">
+            <h2>Other leagues</h2>
+            <ul class="league-other-list">
+          <li><a href="/nba/">NBA</a></li>
+          <li><a href="/mlb/">MLB</a></li>
+          <li><a href="/nhl/">NHL</a></li>
+          <li><a href="/wnba/">WNBA</a></li>
+          <li><a href="/mls/">MLS</a></li>
+          <li><a href="/nwsl/">NWSL</a></li>
+          <li><a href="/premier-league/">Premier League</a></li>
+          <li><a href="/la-liga/">La Liga</a></li>
+          <li><a href="/serie-a/">Serie A</a></li>
+          <li><a href="/bundesliga/">Bundesliga</a></li>
+          <li><a href="/champions-league/">Champions League</a></li>
+          <li><a href="/liga-mx/">Liga MX</a></li>
+          <li><a href="/college-football/">College Football</a></li>
+          <li><a href="/college-basketball-men/">Men&#39;s College Basketball</a></li>
+          <li><a href="/college-basketball-women/">Women&#39;s College Basketball</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <footer class="league-footer">
+        <p><a href="/">NoAdsSports</a> &middot; ad-free live sports scores</p>
+    </footer>
+
+    <script src="/js/league.js"></script>
+</body>
+</html>
