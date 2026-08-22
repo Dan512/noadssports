@@ -676,9 +676,9 @@ function renderDashboard() {
         renderTabBar();
         renderTeamCards();
         renderHeadlinesRestore();
-        fetchAllTeamData(teams);
+        fetchAllTeamData(teams).then(() => { checkLiveGames(teams); checkTvSchedule(teams); });
         // Check livescores after a short delay so it runs AFTER fetchAllTeamData renders
-        setTimeout(() => { checkLiveGames(teams); checkTvSchedule(teams); }, 2000);
+
     }
 }
 
@@ -1086,7 +1086,8 @@ async function checkLiveGames(teams) {
                 if (Array.isArray(games)) livescores.push(...games);
             } catch (e) { /* skip failed league */ }
         }
-        if (!Array.isArray(livescores) || livescores.length === 0) return;
+        if (!Array.isArray(livescores) || livescores.length === 0) return false;
+        let foundLive = false;
 
         for (const team of teams) {
             const teamKey = `${team.source}:${team.id}`;
@@ -1119,17 +1120,23 @@ async function checkLiveGames(teams) {
                     existingNext.outerHTML = liveHtml;
                 }
 
+                foundLive = true;
                 // Also update cache to indicate live game
                 const cached = teamDataCache.get(teamKey);
                 if (cached) cached.hasLiveGame = true;
             }
         }
+        return foundLive;
     } catch (err) {
         // Silently fail — livescore check is supplemental
+        return false;
     }
 }
 
+// Returns a promise resolving once every card has finished rendering, so callers can
+// reliably run checkLiveGames afterwards instead of guessing with a setTimeout.
 function fetchAllTeamData(teams, forceRefresh) {
+    const pending = [];
     for (const team of teams) {
         const teamKey = `${team.source}:${team.id}`;
         const cardData = document.getElementById(`card-data-${teamKey}`);
@@ -1140,24 +1147,31 @@ function fetchAllTeamData(teams, forceRefresh) {
         if (!forceRefresh && cached) {
             const ttl = cached.hasLiveGame ? CACHE_TTL_LIVE : CACHE_TTL_STATIC;
             if (Date.now() - cached.timestamp < ttl) {
-                renderTeamCardData(cardData, team, cached.data);
+                // Already on screen and still fresh: leave the DOM alone. Repainting
+                // here wiped the live-score overlay that checkLiveGames had applied,
+                // which is why the LIVE section vanished when returning to the tab.
+                if (cardData.dataset.rendered !== '1') {
+                    renderTeamCardData(cardData, team, cached.data);
+                }
                 continue;
             }
         }
 
         cardData.innerHTML = `<p class="team-card-loading">${t('loading')}</p>`;
+        cardData.dataset.rendered = '';
 
         if (team.source === 'tsdb') {
-            fetchTsdbTeamData(team, teamKey, cardData);
+            pending.push(fetchTsdbTeamData(team, teamKey, cardData));
         } else if (team.source === 'ncaa') {
-            fetchNcaaTeamData(team, teamKey, cardData);
+            pending.push(fetchNcaaTeamData(team, teamKey, cardData));
         }
     }
+    return Promise.all(pending);
 }
 
 function fetchTsdbTeamData(team, teamKey, cardData) {
     const currentSeason = guessCurrentSeason(team.leagueId);
-    Promise.allSettled([
+    return Promise.allSettled([
         api.getTeamNextEvents(team.id),
         api.getTeamLastEvents(team.id),
         team.leagueId ? api.getLeagueStandings(team.leagueId, currentSeason) : Promise.resolve(null)
@@ -1184,7 +1198,7 @@ function fetchNcaaTeamData(team, teamKey, cardData) {
     const division = sport === 'football' ? 'fbs' : 'd1';
     const proxyBase = PROXY_URL || '';
 
-    Promise.allSettled([
+    return Promise.allSettled([
         fetch(`${proxyBase}/ncaa/scoreboard/${sport}/${division}`).then(r => r.json()),
         fetch(`${proxyBase}/ncaa/standings/${sport}/${division}`).then(r => r.json()),
     ]).then(([scoreboardRes, standingsRes]) => {
@@ -1392,6 +1406,9 @@ function renderTeamCardData(cardEl, team, data) {
     }
 
     cardEl.innerHTML = html || `<p class="text-muted">${t('noData')}</p>`;
+    // Lets fetchAllTeamData tell an already-populated card from an empty one, so a
+    // cache hit does not need to repaint (and destroy the live overlay).
+    cardEl.dataset.rendered = '1';
 }
 
 // --- Expanded team card detail view ------------------------------------------
@@ -2936,12 +2953,40 @@ async function loadHeadlines() {
 let teamDataInterval = null;
 let headlinesInterval = null;
 
+// Two very different jobs used to share one 2-minute interval:
+//   fetchAllTeamData  - 3 requests per followed team; schedules and standings barely
+//                       change, so this stays slow.
+//   checkLiveGames    - one livescore request per league, already cached 15s at the
+//                       proxy. This is the only part that matters during a game, so it
+//                       runs often while something is live and backs off when nothing is.
+const TEAM_DATA_POLL_MS = 120000;
+const LIVE_POLL_ACTIVE_MS = 25000;
+const LIVE_POLL_IDLE_MS = 120000;
+let liveCheckTimer = null;
+
+// A self-rescheduling timer rather than setInterval: the delay depends on whether a
+// game is actually in progress, which we only know after each check.
+function scheduleLiveCheck(delay) {
+    if (liveCheckTimer) { clearTimeout(liveCheckTimer); liveCheckTimer = null; }
+    liveCheckTimer = setTimeout(async () => {
+        const teams = loadFollowedTeams();
+        let live = false;
+        if (teams.length > 0) live = await checkLiveGames(teams);
+        scheduleLiveCheck(live ? LIVE_POLL_ACTIVE_MS : LIVE_POLL_IDLE_MS);
+    }, delay);
+}
+
 function startPolling() {
     stopPolling();
 
     const teams = loadFollowedTeams();
     if (teams.length > 0) {
-        teamDataInterval = setInterval(() => { const t = loadFollowedTeams(); fetchAllTeamData(t); checkLiveGames(t); }, 120000);
+        teamDataInterval = setInterval(() => {
+            const t = loadFollowedTeams();
+            // Re-apply the live overlay after the repaint, or the refresh wipes it.
+            fetchAllTeamData(t).then(() => checkLiveGames(t));
+        }, TEAM_DATA_POLL_MS);
+        scheduleLiveCheck(LIVE_POLL_ACTIVE_MS);
     }
 
     headlinesInterval = setInterval(loadHeadlines, 600000);
@@ -2952,6 +2997,7 @@ function startPolling() {
 function stopPolling() {
     if (teamDataInterval) { clearInterval(teamDataInterval); teamDataInterval = null; }
     if (headlinesInterval) { clearInterval(headlinesInterval); headlinesInterval = null; }
+    if (liveCheckTimer) { clearTimeout(liveCheckTimer); liveCheckTimer = null; }
     document.removeEventListener('visibilitychange', handleVisibilityChange);
 }
 
@@ -2959,12 +3005,20 @@ function handleVisibilityChange() {
     if (document.hidden) {
         if (teamDataInterval) { clearInterval(teamDataInterval); teamDataInterval = null; }
         if (headlinesInterval) { clearInterval(headlinesInterval); headlinesInterval = null; }
+        if (liveCheckTimer) { clearTimeout(liveCheckTimer); liveCheckTimer = null; }
     } else {
-        // Refresh immediately on tab becoming visible
         const teams = loadFollowedTeams();
         if (teams.length > 0) {
-            fetchAllTeamData(teams);
-            teamDataInterval = setInterval(() => { const t = loadFollowedTeams(); fetchAllTeamData(t); checkLiveGames(t); }, 120000);
+            // fetchAllTeamData leaves fresh, already-rendered cards untouched, so this
+            // costs nothing when the data has not aged out. checkLiveGames always runs:
+            // returning to the tab previously skipped it entirely, which is why the LIVE
+            // section disappeared and only came back on a full page reload.
+            fetchAllTeamData(teams).then(() => checkLiveGames(teams));
+            teamDataInterval = setInterval(() => {
+                const t = loadFollowedTeams();
+                fetchAllTeamData(t).then(() => checkLiveGames(t));
+            }, TEAM_DATA_POLL_MS);
+            scheduleLiveCheck(LIVE_POLL_ACTIVE_MS);
         }
         loadHeadlines();
         headlinesInterval = setInterval(loadHeadlines, 600000);
