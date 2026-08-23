@@ -3496,20 +3496,44 @@ renderPrivacyContent();
 (function handleNotificationNav() {
     const params = new URLSearchParams(window.location.search);
     const teamKey = params.get('team');
-    if (teamKey) {
-        // Clean up URL
-        history.replaceState(null, '', '/');
-        // Wait for cards to render, then scroll to the team
-        setTimeout(() => {
-            const card = document.querySelector(`.team-card[data-team-key="${CSS.escape(teamKey)}"]`);
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Flash highlight
-                card.style.outline = '2px solid var(--accent)';
-                setTimeout(() => { card.style.outline = ''; }, 3000);
-            }
-        }, 1500);
+    if (!teamKey) return;
+    history.replaceState(null, '', '/');
+
+    // A notification can be for a team the active tab does not show. The card is then
+    // not in the DOM at all, so simply scrolling found nothing and the visitor landed
+    // on whichever tab they last had open. Switch to a tab that shows the team first.
+    const tabs = loadTabs();
+    const shows = (tab) => !!(tab && tab.teams && (tab.teams.includes('all') || tab.teams.includes(teamKey)));
+
+    if (!shows(tabs.find((t) => t.id === getActiveTab()))) {
+        // Prefer a tab the user actually built for this team; fall back to Main, which
+        // shows everything.
+        const target = tabs.find(shows) || tabs.find((t) => t.id === 'main') || tabs[0];
+        if (target) {
+            setActiveTab(target.id);
+            renderTabBar();
+            renderTeamCards();
+            renderHeadlinesRestore();
+
+            const teams = loadFollowedTeams();
+            const allowed = target.teams.includes('all') ? null : new Set(target.teams);
+            const visible = allowed ? teams.filter((t) => allowed.has(`${t.source}:${t.id}`)) : teams;
+            fetchAllTeamData(visible).then(() => checkLiveGames(visible));
+        }
     }
+
+    const focusCard = () => {
+        const card = document.querySelector(`.team-card[data-team-key="${CSS.escape(teamKey)}"]`);
+        if (!card) return false;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.outline = '2px solid var(--accent)';
+        setTimeout(() => { card.style.outline = ''; }, 3000);
+        return true;
+    };
+
+    // renderTeamCards writes the card shells synchronously, so this normally lands on
+    // the first try. The retry covers a first paint that has not settled yet.
+    if (!focusCard()) setTimeout(focusCard, 400);
 })();
 
 // --- Layout Lock (simplified — no sports-view lock button in V1 dashboard) ---
