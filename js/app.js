@@ -3605,6 +3605,7 @@ function renderPrivacyContent() {
         <p><strong>${t('privacyTitle')}</strong></p>
         <p>${t('privacyIntro')}</p>
         <p>${t('privacyApi')}</p>
+        <p>${t('privacyCounter')}</p>
         <p>${t('privacyStorage')}</p>
         <p>${t('privacyPush')}</p>
         <p>${t('privacyFeedback')}</p>

@@ -162,6 +162,7 @@ ${otherLinks}
         Support this site
     </a>
 
+    <script src="/js/tally.js"></script>
     <script src="/js/league.js"></script>
 </body>
 </html>
